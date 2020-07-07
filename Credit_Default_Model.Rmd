@@ -1,0 +1,4780 @@
+---
+title: "Taiwan Customer Defaults"
+author: "Abhay Kulkarni"
+date: "12/02/2019"
+output:
+  pdf_document:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+header-includes:
+- \usepackage{titling}
+- \pretitle{\begin{center}\LARGE\includegraphics[height=20cm]{FINAL SUBMISSION.jpg}\\[\bigskipamount]}
+- \posttitle{\end{center}}
+---
+
+![Taiwan Customer Defaults ](FINAL SUBMISSION.jpg)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\newpage
+
+
+# Libraries
+```{r message=FALSE, warning=FALSE}
+
+library(knitr)
+library(readxl)
+library(DataExplorer)
+library(memisc)
+library(funModeling) 
+library(cowplot)
+library(MASS)
+library(DMwR)
+library(caTools)
+library(DataExplorer)
+library(ggplot2)
+library(caTools)
+library(skimr)
+library(caret)
+library(cowplot)
+library(caTools)
+library(ROSE)
+library(ROCR)
+library(MLmetrics)
+library(MASS)
+library(class)
+library(e1071)
+library(car)
+library(ROSE)
+library(MASS)
+library(pROC)
+library(e1071)
+library(class)
+library(lattice)
+library(klaR)
+library(ipred)
+library(rpart)
+library(xgboost)
+library(adabag)
+library(pROC)
+library(rattle)
+```
+
+\newpage
+
+# Introduction
+
+## Problem Statement
+
+Beginning in 1990, the Taiwanese government allowed the formation of new banks. These new banks lent large sums of money to real estate companies with the goal of expanding their businesses and increasing profits. The new banks turned to other new business – credit cards and cash cards. In expanding this area of business, banks lavished money on commercials encouraging people to apply for credit cards to consume, apparently without consequences. These banks lowered the requirements for credit card approvals to get more customers.
+
+In Taiwan, in February 2006, debt from credit cards and cash cards reached $268 billion USD.  More than half a million people were not able to repay their loans.  They became “credit card slaves”, a term coined in Taiwan to refer to people who could only pay the minimum balance on their credit card debt every month (“News & Important policy”). This issue resulted in significant societal problems.    
+     
+        
+
+
+## Need of the study   
+   
+In 2005, to prevent more and more new credit card slaves from appearing, the Taiwanese Finance Supervisory Commission issued some orders to require banks to modify their requirements of credit card applications. Some of the changes included raising the income and job requirements, prohibiting improper credit card commercials, prohibiting inappropriate collection behaviors and prohibiting compound interest.    
+    
+       
+       
+## Business/Social Opportunity
+   
+A Taiwan-based bank wants to improve their prediction of defaults of their customers, as well as identify the patterns that determine this likelihood. This would help the bank decide whether to issue the credit card or not. Also, fix credit limt and risk type to the customer and avoid future defaults.
+
+We would be analyzing the dataset and build a predictive model to identify and predict default payments.
+   
+\newpage
+
+# Acknowledgement
+
+![Acknowledgement ](acknowlege.png)
+
+
+
+
+# Speeding Processor Cores
+
+```{r}
+library(parallel)
+library(doParallel)
+clusterforspeed <- makeCluster(detectCores() - 1) ## convention to leave 1 core for OS
+registerDoParallel(clusterforspeed)
+```
+
+
+
+
+
+
+# Understanding the dataset and Data Cleaning   
+    
+      
+## Set Working Directory
+```{r}
+setwd("Z:\\Projects\\Capstone")
+getwd()
+```
+
+## Import dataset
+
+```{r}
+myrawdata <- read_excel("Taiwan-Customer defaults.xls", skip = 1)
+```
+
+## Data Dictionary/ Description
+
+|| Name                           | Description                                                                                                                                                                                                                                           |
+|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ID                             | ID of each client                                                                                                                                                                                                                                     |
+| LIMIT\_BAL                     | Amount of given credit in NT dollars \(includes individual and family/supplementary credit\)                                                                                                                                                          |
+| SEX                            | Gender \(1=male, 2=female\)                                                                                                                                                                                                                           |
+| EDUCATION                      | \(1=graduate school, 2=university, 3=high school, 4=others, 5=unknown, 6=unknown\)                                                                                                                                                                    |
+| MARRIAGE                       | Marital status \(1=married, 2=single, 3=others\)                                                                                                                                                                                                      |
+| AGE                            | Age in years                                                                                                                                                                                                                                          |
+| PAY\_0                         | Repayment status in September, 2005 \(\-2=no consumption, \-1=pay duly, 0=the use of revolving credit, 1=payment delay for one month, 2=payment delay for two months, … 8=payment delay for eight months, 9=payment delay for nine months and above\) |
+| PAY\_2                         | Repayment status in August, 2005 \(scale same as above\)                                                                                                                                                                                              |
+| PAY\_3                         | Repayment status in July, 2005 \(scale same as above\)                                                                                                                                                                                                |
+| PAY\_4                         | Repayment status in June, 2005 \(scale same as above\)                                                                                                                                                                                                |
+| PAY\_5                         | Repayment status in May, 2005 \(scale same as above\)                                                                                                                                                                                                 |
+| PAY\_6                         | Repayment status in April, 2005 \(scale same as above\)                                                                                                                                                                                               |
+| BILL\_AMT1                     | Amount of bill statement in September, 2005 \(NT dollar\)                                                                                                                                                                                             |
+| BILL\_AMT2                     | Amount of bill statement in August, 2005 \(NT dollar\)                                                                                                                                                                                                |
+| BILL\_AMT3                     | Amount of bill statement in July, 2005 \(NT dollar\)                                                                                                                                                                                                  |
+| BILL\_AMT4                     | Amount of bill statement in June, 2005 \(NT dollar\)                                                                                                                                                                                                  |
+| BILL\_AMT5                     | Amount of bill statement in May, 2005 \(NT dollar\)                                                                                                                                                                                                   |
+| BILL\_AMT6                     | Amount of bill statement in April, 2005 \(NT dollar\)                                                                                                                                                                                                 |
+| PAY\_AMT1                      | Amount of previous payment in September, 2005 \(NT dollar\)                                                                                                                                                                                           |
+| PAY\_AMT2                      | Amount of previous payment in August, 2005 \(NT dollar\)                                                                                                                                                                                              |
+| PAY\_AMT3                      | Amount of previous payment in July, 2005 \(NT dollar\)                                                                                                                                                                                                |
+| PAY\_AMT4                      | Amount of previous payment in June, 2005 \(NT dollar\)                                                                                                                                                                                                |
+| PAY\_AMT5                      | Amount of previous payment in May, 2005 \(NT dollar\)                                                                                                                                                                                                 |
+| PAY\_AMT6                      | Amount of previous payment in April, 2005 \(NT dollar\)                                                                                                                                                                                               |
+| default\.payment\.next\.month  | Default payment \(1=yes, 0=no\)                                                                                                                                                                                                                       |
+
+
+
+
+
+## Convert to Data Frame
+
+```{r}
+myrawdata<- as.data.frame(myrawdata)
+```
+
+
+## Understanding how data was collected in terms of time and frequency   
+
+```{r echo=FALSE, warning=FALSE}
+head(myrawdata)
+```
+
+
+ **Findings **   
+  
+  * The dataset contains information on default payments, demographic factors, credit data, history of payment, and bill statements of credit card clients in Taiwan from April 2005 to September 2005.   
+     
+         
+         
+## Dimension (Rows and Column in the dataset)  
+   
+```{r echo=FALSE}
+dim(myrawdata)
+```
+
+
+**Findings **   
+  
+* There are 30000 observations and 25 Features
+  
+  
+     
+## Number of Discreate and Continous Variables
+
+```{r echo=FALSE, warning=FALSE}
+introduce(myrawdata)
+
+```
+
+
+
+ **Findings **   
+  
+  * The above table incorrectly reads dataset as 25 Continuos and 0 Discreate
+  
+  * Have to convert 'Sex', 'Education', 'Marriage' and 'Default Payment'as factors.
+
+
+## Converting incorrectly read data types to factors
+  
+```{r echo=FALSE}
+a <- c(3,4,5,25)
+
+converteddata <- myrawdata
+```
+
+```{r echo=FALSE}
+for (i in a) {
+  converteddata[,i] <- as.factor(converteddata[,i])
+}
+```
+
+
+
+```{r echo=FALSE}
+introduce(converteddata)
+```
+
+
+ **Findings **   
+  
+ * Have converted 'Sex', 'Education', 'Marriage' and 'Default Payment'as factors.
+
+
+
+## Will look into pay_1,2,3,4,5,6 later
+
+
+* For fields pay1 to pay6 , roughly 50% of them have 0s and there are many -2s as well.
+
+* Cannot conclude anything about the data right now.
+
+* PAY_* is an ordinal variable where the levels are ordered and have some meaning
+
+**Only exploring the data further can reveal some insights**
+
+**Retaining it as numeric for the moment**
+
+
+
+## Check for data summary/ data details
+
+```{r echo=FALSE}
+datadetails <-df_status(converteddata)
+```
+
+
+
+
+## Change names of few columns
+
+
+ **Findings **
+ 
+ * To have similar column names, changing "PAY_0" to "PAY_1"
+ 
+ * Column default.payment.next.month rename to DEFAULT
+
+```{r echo=FALSE}
+names(converteddata)[names(converteddata) == "PAY_0"] <- "PAY_1"
+
+names(converteddata)[names(converteddata) == "default payment next month"] <- "DEFAULT "
+```
+
+
+
+## Converting data levels of category
+
+ **Findings **
+ 
+ * Converting Default factor from "0" and "1" to "No" and "Yes"
+ 
+ * Converting Marriage "1", "2" and "3" to "Married", "Single" and "Other"
+ 
+ * As there is no description for "5" and "6". Converting Education to "Graduate.School", "University", ""High.School" and "Unknown".
+
+```{r echo=FALSE}
+
+converteddata$DEFAULT <- as.factor(ifelse(converteddata$DEFAULT == 1, "Yes", "No"))
+converteddata$SEX <- as.factor(ifelse(converteddata$SEX == 1, "Male", "Female"))
+converteddata$MARRIAGE <- as.factor(ifelse(converteddata$MARRIAGE == 1, "Married",
+                                ifelse(converteddata$MARRIAGE == 2, "Single", "Other")))
+converteddata$EDUCATION <- as.factor(ifelse(converteddata$EDUCATION == 1, "Graduate.School",
+                                 ifelse(converteddata$EDUCATION == 2, "University", 
+                                        ifelse(converteddata$EDUCATION == 3, "High.School",
+                                               ifelse(converteddata$EDUCATION == 4, "Other", "Unkown")))))
+```
+
+
+
+
+## Let's check the above conversion
+
+```{r echo=FALSE}
+table(converteddata$MARRIAGE)
+
+table(converteddata$SEX)
+
+table(converteddata$EDUCATION)
+```
+
+
+
+
+## Before we begin EDA. Let's get rid off ID column
+
+```{r echo=FALSE}
+converteddata<- converteddata[,c(-25,-1)]
+```
+
+## Create backup and proceed with EDA
+
+```{r echo=FALSE}
+backupdata <- converteddata
+```
+\newpage
+## Check for Missing Values
+
+```{r echo=FALSE, fig.height=7}
+plot_missing(converteddata)
+```
+ **Findings **
+ 
+ * There are no missing values
+
+
+# EDA
+
+## Before Univariate Analysis. A quick check with corr plot and understand pattern
+
+```{r echo=FALSE, fig.height=9, fig.width=11, warning=TRUE}
+plot_correlation(converteddata)
+```
+
+**Findings **
+ 
+* Look at DEFAULT correlation with other variables.
+
+* Lowest is with LIMIT_BAL.LIMIT_BAL and DEFAULT are Negatively Correlated. Negative correlation indicates higher Credit Limit, lower Default.
+
+* Highest is correlation with PAY_1. PAY_1 and DEFAULT are positively correlated. Positive correlation indicates longer period of Delay Payment, higher Default.
+
+* In general PAY_1 ~ PAY_6 have higher correlation to DEFAULT compare to other variables.
+
+* Clients payment behaviour give strong indication on Default.
+
+
+
+## UNIVARIATE ANALYSIS. Let's start with Categorical Variable
+
+## Check for dependent(DEFAULT) column split
+
+```{r echo=FALSE}
+a <- ggplot(converteddata) +
+ aes(x = DEFAULT, y = prop.table(stat(count)),fill = DEFAULT,label = scales::percent(prop.table(stat(count)))) +
+ geom_bar() +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Default Split Percentage") +
+ theme(plot.title = element_text(hjust = 0.5))+
+geom_text(stat = 'count',
+              position = position_dodge(.9), 
+              vjust = -0.5, 
+              size = 3)
+
+a
+```
+
+ **Findings **
+ 
+ * The dependent data is not evenly distributed. We have more of "NO 78% and 22% "YES"
+ 
+ * Dataset of Bank Credit Defaults are good examples of imbalanced data. We'll check if the data needs to be balanced during Model Building.
+ 
+ 
+ 
+ 
+ 
+## Let's check percentage of customer based on SEX
+
+```{r echo=FALSE}
+b <- ggplot(converteddata) +
+ aes(x = SEX, y = prop.table(stat(count)),fill = SEX,label = scales::percent(prop.table(stat(count)))) +
+ geom_bar() +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "SEX Split Percentage") +
+ theme(plot.title = element_text(hjust = 0.5))+
+geom_text(stat = 'count',
+              position = position_dodge(.9), 
+              vjust = -0.5, 
+              size = 3)
+b
+```
+
+ 
+ 
+ 
+ 
+ **Findings **
+ 
+ * There are more Female credit card holers than male.
+ 
+ * There are 20% more female customer than male. This could be an important feature to build deault prediction model. We'll investigate further during bivariate analysis(gender vs default)
+ 
+ 
+ 
+ 
+## Let's check percentage of customer based on EDUCATION
+ 
+```{r echo=FALSE}
+c <- ggplot(converteddata) +
+ aes(x = EDUCATION, y = prop.table(stat(count)),fill = EDUCATION,label = scales::percent(prop.table(stat(count)))) +
+ geom_bar() +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "EDUCATION Split Percentage") +
+ theme(plot.title = element_text(hjust = 0.5))+
+geom_text(stat = 'count',
+              position = position_dodge(.9), 
+              vjust = -0.5, 
+              size = 3)
+
+c
+```
+ 
+ **Findings **
+ 
+* We can immediately see that "Other" and "Unknown" are negligible. However, there are more credit card holders who have "University" level education, followed by "Graduate School" and "High School"
+ 
+* We'' investigate this further during Bivariate Analysis and check if this is an important feature to preidct default.
+ 
+ 
+## Let's check percentage of customer based on MARRIAGE
+
+```{r echo=FALSE}
+d <- ggplot(converteddata) +
+ aes(x = MARRIAGE, y = prop.table(stat(count)),fill = MARRIAGE,label = scales::percent(prop.table(stat(count)))) +
+ geom_bar() +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "MARRIAGE Split Percentage") +
+ theme(plot.title = element_text(hjust = 0.5))+
+geom_text(stat = 'count',
+              position = position_dodge(.9), 
+              vjust = -0.5, 
+              size = 3)
+d
+```
+
+
+
+ **Findings **
+ 
+ * We can immediately see that "Other" has negligible data. However, there is difference of 7.7% between "Married" and "Single" customers.
+ 
+ 
+
+## Let's investigate Continous features
+
+## Let's check the distribution and outliers(if any) of Limit Balance
+
+```{r echo=FALSE}
+e <- ggplot(converteddata) +
+ aes(x = LIMIT_BAL) +
+ geom_histogram(bins = 20L, fill = "#a6cee3") +
+ labs(title = "Histogram of Limit Balance") +
+ theme(plot.title = element_text(hjust = 0.5))
+  
+  
+  
+  
+
+f <- ggplot(converteddata) +
+ aes(x = "", y = LIMIT_BAL) +
+ geom_boxplot(fill = "#a6cee3") +
+ labs(title = "Box Plot of Limit Balance") +
+ theme(plot.title = element_text(hjust = 0.5))
+
+
+plot_grid(e,f)
+
+summary(converteddata$LIMIT_BAL)
+sd(converteddata$LIMIT_BAL)
+
+```
+
+  **Findings **
+ 
+ * Histogram : By looking at histogram we can see that it is a bit right skewed. The **Mean** of distribution is **167484** and **Standard Deviation** of **129747.7**
+ 
+ * Box Plot : We can see that there are outliers present per the BOX PLOT. We'll treat it later (Notes2 Submission). Would treat outliers using Winsorizing transformation.
+ 
+ * Min Value is 10000, Q1 is 50000, Median is 140000, Mean is 167484, Q3 is 240000 and Max is 1000000.
+ 
+ 
+ 
+ 
+## AGE
+ 
+```{r echo=FALSE}
+g <- ggplot(converteddata) +
+ aes(x = AGE) +
+ geom_histogram(bins = 20L, fill = "#a6cee3") +
+ labs(title = "Histogram of AGE") +
+ theme(plot.title = element_text(hjust = 0.5))
+  
+  
+  
+  
+
+h <- ggplot(converteddata) +
+ aes(x = "", y = AGE) +
+ geom_boxplot(fill = "#a6cee3") +
+ labs(title = "Box Plot of AGE") +
+ theme(plot.title = element_text(hjust = 0.5))
+
+
+plot_grid(g,h)
+
+summary(converteddata$AGE)
+sd(converteddata$AGE)
+```
+ 
+
+ 
+ 
+ 
+ 
+ 
+# Bivariate Analysis
+
+##  Let's see how each feature reacts with dependent feature, DEAFULT. Let's start Bivariate Analysis with Categorical Features.
+ 
+ 
+ 
+## Let's check if there is significant difference between "Male" and "Female" with respect to Default
+```{r echo=FALSE}
+k <- ggplot(converteddata) +
+ aes(x = SEX,  y = prop.table(stat(count)),fill = DEFAULT,label = scales::percent(prop.table(stat(count)))) +
+ geom_bar(position = "dodge") +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "SEX VS DEFAULT") +
+ theme(plot.title = element_text(hjust = 0.5))+geom_text(stat = 'count',
+              position = position_dodge(.9), 
+              vjust = -0.5, 
+              size = 3)
+k
+```
+ 
+ 
+ 
+**Findings **
+ 
+* From the above figure. We can see that the Default of Female is 12.5% and Male is 9.6%. 
+ 
+* Let's check Chi-Square test of Independence
+ 
+ Test the hypothesis whether the Default is independent of the SEX level at .05 significance level.
+ 
+**Null Hypothesis(HO)** : Default is Independent of SEX
+   
+**Alternative Hypothesis(H1)** : Default is dependent on SEX
+  
+```{r echo=FALSE}
+SEXtable <- table(converteddata$SEX,converteddata$DEFAULT)
+
+SEXtable
+```
+ 
+**Let's run Chi-Square test**
+ 
+```{r echo=FALSE}
+SEXchi<- chisq.test(SEXtable)
+
+SEXchi
+```
+ 
+**Findings **
+  
+* p- value is way lesser than 0.05. We reject Null Hypothesis and go with Alternative hypothesis that Default" depends on  "SEX". 
+  
+* SEX is an important feature to distinguish between Default vs No Default. 
+  
+  
+  
+## Let's check EDUCATION VS DEFAULT
+ 
+ 
+ 
+```{r echo=FALSE}
+l<-  ggplot(converteddata) +
+ aes(x = EDUCATION,  y = prop.table(stat(count)),fill = DEFAULT,label = scales::percent(prop.table(stat(count)))) +
+ geom_bar(position = "dodge") +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "EDUCATION VS DEFAULT") +
+ theme(plot.title = element_text(hjust = 0.5))+geom_text(stat = 'count',
+              position = position_dodge(.9), 
+              vjust = -0.5, 
+              size = 3)
+
+l
+```
+ 
+ 
+ 
+ 
+ 
+```{r echo=FALSE}
+EducationTable <- table(converteddata$EDUCATION,converteddata$DEFAULT)
+
+EducationTable
+```
+ 
+ 
+**Let's run Chi-Square test**
+ 
+```{r echo=FALSE}
+Educhisq<- chisq.test(EducationTable)
+
+Educhisq
+```
+ 
+**Findings **
+ 
+* From the above figure. We can see that the difference Default percentage  of University is the most at 24.56% followed by Graduate School at 21.71%  
+ 
+* Let's check Chi-Square test of Independence
+ 
+ Test the hypothesis whether the Default is independent of the EDUCATION level at .05 significance level.
+ 
+**Null Hypothesis(HO)** : Default is Independent of EDUCATION
+   
+**Alternative Hypothesis(H1)** : Default is dependent on EDUCATION
+ 
+ 
+ 
+ 
+**Findings **
+  
+* p- value is way lesser than 0.05. We reject Null Hypothesis and go with Alternative hypothesis that Default" depends on  "EDUCATION". 
+  
+* EDUCATION is an important feature to distinguish between Default vs No Default. 
+  
+  
+
+## MARRIAGE VS DEFAULT
+
+```{r echo=FALSE}
+m<-  ggplot(converteddata) +
+ aes(x = MARRIAGE,  y = prop.table(stat(count)),fill = DEFAULT,label = scales::percent(prop.table(stat(count)))) +
+ geom_bar(position = "dodge") +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "MARRIAGE VS DEFAULT") +
+ theme(plot.title = element_text(hjust = 0.5))+geom_text(stat = 'count',
+              position = position_dodge(.9), 
+              vjust = -0.5, 
+              size = 3)
+
+m
+```
+ 
+ 
+ 
+**Findings **
+ 
+* From the above figure. It looks like "Married" and "Single" default percentage is very close.
+ 
+* Lets run Chi Square test of independence
+ 
+ 
+```{r echo=FALSE}
+MarriageTable <- table(converteddata$DEFAULT,converteddata$MARRIAGE)
+
+MarriageTable
+```
+ 
+ 
+ **Let's run Chi-Square test**
+ 
+```{r echo=FALSE}
+MarriageChi<- chisq.test(MarriageTable)
+
+MarriageChi
+```
+ 
+ 
+**Findings **
+  
+* p- value is way lesser than 0.05. We reject Null Hypothesis and go with Alternative hypothesis that Default" depends on  "MARRIAGE". 
+  
+* MARRIAGE is an important feature to distinguish between Default vs No Default.
+ 
+ 
+ 
+## Let's start BiVariate Analysis with Numerical feature VS Dependent Feature(DEFAULT). Let's dig in with the information received from Correlation Plot 
+ 
+ 
+ 
+```{r echo=FALSE, fig.width=9}
+
+LD <- ggplot(converteddata) +
+ aes(x = LIMIT_BAL, fill = DEFAULT) +
+ geom_density(adjust = 1L) +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Density Plot LIMIT BAL VS DEFAULT") +
+ theme(plot.title = element_text(hjust = 0.5))
+
+dodge <- position_dodge(width = 0.9)
+
+ Boxld <- ggplot(converteddata) +
+ aes(x = "", y = LIMIT_BAL, fill = DEFAULT) +
+ geom_violin(adjust = 1L, scale = "area") +geom_boxplot(width=0.1,position = dodge)+
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Violin Plot LIMIT BAL VS DEFAULT") +
+
+
+
+ theme(plot.title = element_text(hjust = 0.5))
+
+
+
+plot_grid(LD,Boxld)
+
+
+```
+ 
+ 
+ 
+ 
+**Findings **
+  
+* We can see the inverse relationship between LIMIT BAL and DEFAULT. Lesser the BALANCE More the DEFAULT 
+  
+
+ 
+ 
+ 
+ 
+ 
+## AGE VS DEFAULT
+ 
+```{r echo=FALSE, fig.width=9}
+AGEDen <- ggplot(converteddata) +
+ aes(x = AGE, fill = DEFAULT) +
+ geom_density(adjust = 1L) +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Density Plot AGE VS DEFAULT") +
+ theme(plot.title = element_text(hjust = 0.5))
+
+dodge <- position_dodge(width = 0.9)
+
+ BOXAGE<- ggplot(converteddata) +
+ aes(x = "", y = AGE, fill = DEFAULT) +
+ geom_violin(adjust = 1L, scale = "area") +geom_boxplot(width=0.1,position = dodge)+
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Violin Plot AGE VS DEFAULT") +
+
+
+
+ theme(plot.title = element_text(hjust = 0.5))
+
+
+
+plot_grid(AGEDen ,BOXAGE)
+```
+ 
+**Findings **
+  
+* There are more defaulters between Age 20 and Age 25
+
+
+
+
+
+## BILL_AMT1 VS DEFAULT
+ 
+```{r echo=FALSE, fig.width=9}
+BILL_AMT1Den <- ggplot(converteddata) +
+ aes(x = BILL_AMT1, fill = DEFAULT) +
+ geom_density(adjust = 1L) +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Density Plot BILL_AMT1 VS DEFAULT") +
+ theme(plot.title = element_text(hjust = 0.5))
+
+dodge <- position_dodge(width = 0.9)
+
+ BOXBILL_AMT1<- ggplot(converteddata) +
+ aes(x = "", y = BILL_AMT1, fill = DEFAULT) +
+ geom_violin(adjust = 1L, scale = "area") +geom_boxplot(width=0.1,position = dodge)+
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Violin Plot BILL_AMT1 VS DEFAULT") +
+
+
+
+ theme(plot.title = element_text(hjust = 0.5))
+
+
+
+plot_grid(BILL_AMT1Den ,BOXBILL_AMT1)
+
+```
+
+
+**Findings **
+  
+* It appears that there is more defaults between **BILL AMT 0 and 250000**
+
+
+
+## BILL_AMT6 VS DEFAULT
+ 
+```{r echo=FALSE, fig.width=9}
+BILL_AMT6Den <- ggplot(converteddata) +
+ aes(x = BILL_AMT6, fill = DEFAULT) +
+ geom_density(adjust = 1L) +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Density Plot BILL_AMT6 VS DEFAULT") +
+ theme(plot.title = element_text(hjust = 0.5))
+
+dodge <- position_dodge(width = 0.9)
+
+ BOXBILL_AMT6<- ggplot(converteddata) +
+ aes(x = "", y = BILL_AMT6, fill = DEFAULT) +
+ geom_violin(adjust = 1L, scale = "area") +geom_boxplot(width=0.1,position = dodge)+
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Violin Plot BILL_AMT6 VS DEFAULT") +
+
+
+
+ theme(plot.title = element_text(hjust = 0.5))
+
+
+
+plot_grid(BILL_AMT6Den ,BOXBILL_AMT6)
+```
+
+
+
+
+**Findings **
+  
+* It appears that there is more defaults towards initial Billing AMT 6 and DEFAULTS gradually reduces as Billing Increases.
+
+
+
+
+## PAY_AMT1 VS DEFAULT
+ 
+```{r echo=FALSE, fig.width=9}
+PAY_AMT1Den <- ggplot(converteddata) +
+ aes(x = PAY_AMT1, fill = DEFAULT) +
+ geom_density(adjust = 1L) +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Density Plot PAY_AMT1 VS DEFAULT") +
+ theme(plot.title = element_text(hjust = 0.5))
+
+dodge <- position_dodge(width = 0.9)
+
+ BOXPAY_AMT1<- ggplot(converteddata) +
+ aes(x = "", y = PAY_AMT1, fill = DEFAULT) +
+ geom_violin(adjust = 1L, scale = "area") +geom_boxplot(width=0.1,position = dodge)+
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Violin Plot PAY_AMT1 VS DEFAULT") +
+
+
+
+ theme(plot.title = element_text(hjust = 0.5))
+
+
+
+plot_grid(PAY_AMT1Den ,BOXPAY_AMT1)
+```
+
+
+
+**Findings **
+  
+* We can immediately see that there are more 0 values in the PAY_AMT1 column. Also, it is directly related to defaults. Amount due and unpaid will result in defaults.
+
+
+
+
+
+## Finally let's plot correlation plot between only numberical variables
+
+```{r echo=FALSE, fig.height=11, fig.width=9}
+plot_correlation((converteddata), type = "c")
+```
+
+**Findings **
+  
+* Billing AMT 1 to Billing AMT6 are highly correlated. These highly correlated features can undergo dimension reduction using PCA.
+
+* PAY AMT1 to PAY AMT6 are highly correlated. These highly correlated features can undergo dimension reduction using PCA.
+
+* PAY1 to PAY 6 needs further investigation. These features will be handeled in future.
+
+
+# Summarise by asking some questions
+
+## Defaulters are more in which Age bracket?
+
+* There are more defaulters between Age 20 and Age 25    
+    
+    
+
+## Any effect of Education (level) on Default?
+
+* High School and Graduate school education holders are likely to Default more.   
+   
+      
+## Did you find any any gender bias in extending credits?   
+    
+* There are more FEMALE credit card holders. 20% more to be precise.    
+   
+      
+## More Defaulters belong to which Gender?
+
+* There are more FEMALE defaulters compared to MEN. FEMALE defaulters are 12.5% VS  9.6% MEN    
+    
+        
+## Married people taking more credits than single?   
+    
+* No, it’s the other way around. Single Customers are taking more loans than Married customers. MARRIED customers are 45.5% VS 53.2% SINGLE customers.   
+    
+       
+## Who are more defaulters – Single or Married?   
+   
+* Single Customers are more defaulters compared to Married Customers. MARRIED 10.69% VS  SINGLE 11.14%   
+    
+       
+
+##  Does Gender and Marital Status has any role on Defaults?
+
+```{r echo=FALSE, fig.width=11}
+ggplot(converteddata) +
+ aes(x = SEX,  y = prop.table(stat(count)),fill = DEFAULT,label =scales::percent(prop.table(stat(count))))  +
+ geom_bar(position = "dodge") +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "GENDER & MARITAL STATUS VS DEFAULT") +
+ theme(plot.title = element_text(hjust = 0.5))+geom_text(stat = 'count',
+              position = position_dodge(.9), 
+              vjust = -0.5, 
+              size = 3) +
+ facet_wrap(vars(MARRIAGE))
+```
+
+
+
+
+* FEMALE customers are more likely to default regardless of marital status.
+
+
+# NEXT STEPS ( Notes 2)
+   
+## Outlier Treatent using winsorizing method.
+
+## Feature creation
+
+## Numerical variables AGE and Other variables are on differnt scales.Normalization or Standardization of data will be done. 
+
+## Build classification model based on variable importance.
+
+
+\newpage
+
+
+
+![Taiwan Customer Defaults Notes2](CREDIT CARD PROJECT NOTES2.jpg)
+
+
+
+\newpage
+
+
+
+# Notes 2 Roadmap.
+
+## Detailed EDA would include several aspects some of those are mentioned below:
+
+1. Renaming of variables
+2. Remove the variables that are not required
+3. Outlier treatment
+4. New features creation
+5. EDA of new features
+6. Binning of a particular variable (for example- Age) (as needed)
+7. Merging or combining different values under one category for any variable( for example for a categorical variable-education level 4 and above can be grouped together) (as needed)
+
+8. Any such modifications would also involve EDA
+9. Identification of important variables
+10. Multicollinearity
+11. List the observations from the above steps
+12. Dividing the data into Train and Test datasets.
+13. Assess if SMOTE is required
+14. Make data sets (for example actual train, smoted train, normalized actual train, normalized smoted train , dataset post PCA etc.)
+While you make these data sets, please add the objective(why are you doing this).
+
+15. List out different models/algorithms you think appropriate to be used in the context of the problem statement.
+16. For each method you would list the name, definition and how is it going to help in this case.
+17. Please elaborate on all or any of the above-mentioned topics as you think appropriate.
+
+
+\newpage
+
+# Understanding the dataset and Data Cleaning   
+    
+      
+                                      
+
+
+
+
+
+
+
+
+
+
+ **Findings **
+ 
+ * There are no missing values    
+ 
+ 
+     
+        
+
+
+# Check for dependent(DEFAULT) column split
+
+```{r echo=FALSE}
+a <- ggplot(converteddata) +
+ aes(x = DEFAULT, y = prop.table(stat(count)),fill = DEFAULT,label = scales::percent(prop.table(stat(count)))) +
+ geom_bar() +
+ scale_fill_brewer(palette = "Pastel2") +
+ labs(title = "Default Split Percentage") +
+ theme(plot.title = element_text(hjust = 0.5))+
+geom_text(stat = 'count',
+              position = position_dodge(.9), 
+              vjust = -0.5, 
+              size = 3)
+
+a
+```
+
+
+
+ **Findings **
+ 
+ * The dependent data is not evenly distributed. We have more of "NO 78% and 22% "YES"
+ 
+ * Dataset of Bank Credit Defaults are good examples of imbalanced data.    
+ 
+ * There will be multiple datasets created. One Balanced dataset using SMOTE will also be created.
+ 
+ 
+ 
+
+
+
+
+
+```{r echo=FALSE}
+Paytofactors <- c(6,7,8,9,10,11)
+```
+
+
+```{r echo=FALSE}
+for (i in Paytofactors) {
+  converteddata[,i] <- as.factor(converteddata[,i])
+}
+```
+
+
+
+
+
+
+
+# Check the data
+
+```{r echo=FALSE}
+introduce(converteddata)
+```
+
+
+
+ **Findings **   
+  
+ * Have converted 'Sex', 'Education', 'Marriage' and 'Default Payment'as factors.
+
+
+
+
+
+
+# Change names of few columns
+
+
+ **Findings **
+ 
+ * To have similar column names, changing "PAY_0" to "PAY_1"
+ 
+ * Column default.payment.next.month rename to DEFAULT
+
+
+
+
+
+
+
+
+
+# Merging or combining different values under one category. Converting data levels of category
+
+ **Findings **
+ 
+ * Converting Default factor from "0" and "1" to "No" and "Yes"
+ 
+ * Converting Marriage "1", "2" and "3" to "Married", "Single" and "Other"
+ 
+ * As there is no description for "5" and "6". Converting Education to "Graduate.School", "University", ""High.School" and "Unknown".
+
+
+
+
+
+# Let's check the above conversion
+
+```{r echo=FALSE}
+table(converteddata$MARRIAGE)
+
+table(converteddata$SEX)
+
+table(converteddata$EDUCATION)
+```
+
+
+
+
+# Before treating Outliers. Let's plot some scaatter plot
+
+## To check the reationship between numericals data. AGE VS LIMIT BAL
+
+
+```{r echo=FALSE, fig.height=9}
+ggplot(converteddata) +
+ aes(x = AGE, y = LIMIT_BAL, colour = DEFAULT) +
+ geom_point(size = 1L) +
+ scale_color_brewer(palette = "Pastel2") +
+ theme_minimal()
+```
+
+**Findings **
+ 
+* We see that between AGE 25 and 50. There is direct relationship between AGE and LIMIT BAL. Also, we see that LIMIT BAL more than 500000 results in less default.
+
+
+
+
+
+
+
+
+
+
+
+
+# Create backup and proceed with EDA
+
+```{r echo=FALSE}
+backupdata <- converteddata
+```
+
+```{r echo=FALSE}
+outliersdata <- converteddata
+```
+
+
+
+
+# Check Outliers and treat them. 
+
+**Will be creating Multiple datasets. ActualDataset, Outlier treated, Standardized and Standardised SMOTE**
+
+## Boxplot of AGE
+
+```{r echo=FALSE}
+boxplot(outliersdata$AGE, main="BoxPlot of Age")
+```
+
+
+
+**Findings **
+ 
+* We may not want to treat AGE as an outlier. It represents true distribution of customer by age.
+
+
+
+
+
+## Boxplot of Limit Balance and Outlier Treatment
+
+
+```{r echo=FALSE}
+boxplot(outliersdata$LIMIT_BAL, main="Boxplot of Limit Balance")
+summary(outliersdata$LIMIT_BAL)
+```
+
+### Treating Outlier for Limit Balance using Winsorizing.
+
+```{r echo=FALSE}
+benchlimitbalancehigh <- 240000 + (1.5 * IQR(outliersdata$LIMIT_BAL))
+
+benchlimitbalanceLOW <- 50000 - (1.5 * IQR(outliersdata$LIMIT_BAL))
+
+IQR(outliersdata$LIMIT_BAL)
+
+benchlimitbalancehigh
+
+benchlimitbalanceLOW
+```
+
+**Findings **
+ 
+* Any observation above 525000 will be assigned the value of 525000
+
+
+```{r echo=FALSE}
+outliersdata$LIMIT_BAL[outliersdata$LIMIT_BAL > benchlimitbalancehigh] <- benchlimitbalancehigh
+```
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+options(scipen=999)
+boxplot(outliersdata$LIMIT_BAL, main = "Boxplot of Limit Balance")
+summary(outliersdata$LIMIT_BAL)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+## Boxplot of BillAMT 1 
+
+```{r echo=FALSE}
+boxplot(outliersdata$BILL_AMT1,main = "Boxplot of BillAMT 1")
+
+summary(outliersdata$BILL_AMT1)
+```
+
+
+
+
+
+
+### Treating Outlier for BILLAMT1 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalAMT1high <- 67091 + (1.5 * IQR(outliersdata$BILL_AMT1))
+
+benchbalAMT1LOW <- 3559 - (1.5 * IQR(outliersdata$BILL_AMT1))
+
+IQR(outliersdata$BILL_AMT1)
+
+benchbalAMT1high
+
+benchbalAMT1LOW
+```
+
+
+
+
+**Findings **
+ 
+* Any observation above 162389.4 and below -91739.38 will be assigned the value of 162389.4 and -91739.38 respectively
+
+
+
+```{r echo=FALSE}
+outliersdata$BILL_AMT1[outliersdata$BILL_AMT1 > benchbalAMT1high] <- benchbalAMT1high
+
+outliersdata$BILL_AMT1[outliersdata$BILL_AMT1 < benchbalAMT1LOW] <- benchbalAMT1LOW
+
+```
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$BILL_AMT1, main = "Boxplot of BILL AMT1")
+summary(outliersdata$BILL_AMT1)
+```
+
+
+
+
+## Boxplot of BillAMT 2 
+
+```{r echo=FALSE}
+boxplot(outliersdata$BILL_AMT2,main = "Boxplot of BillAMT 2")
+
+summary(outliersdata$BILL_AMT2)
+```
+
+
+
+### Treating Outlier for Bill AMT 2 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalAMT2high <- 64006 + (1.5 * IQR(outliersdata$BILL_AMT2))
+
+benchbalAMT2LOW <- 2985 - (1.5 * IQR(outliersdata$BILL_AMT2))
+
+IQR(outliersdata$BILL_AMT2)
+
+benchbalAMT2high
+
+benchbalAMT2LOW
+```
+
+
+
+**Findings **
+ 
+* Any observation above 155538.2 and below -88547.25 will be assigned the value of 155538.2 and -88547.25 respectively
+
+
+
+
+
+
+```{r echo=FALSE}
+outliersdata$BILL_AMT2[outliersdata$BILL_AMT2 > benchbalAMT2high] <- benchbalAMT2high
+
+outliersdata$BILL_AMT2[outliersdata$BILL_AMT2 < benchbalAMT2LOW] <- benchbalAMT2LOW
+
+```
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$BILL_AMT2, main = "Boxplot of BILL AMT2")
+summary(outliersdata$BILL_AMT2)
+```
+
+
+
+
+## Boxplot of BillAMT 3 
+
+```{r echo=FALSE}
+boxplot(outliersdata$BILL_AMT3,main = "Boxplot of BillAMT 3")
+
+summary(outliersdata$BILL_AMT3)
+```
+
+### Treating Outlier for Bill AMT 3 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalAMT3high <- 60165 + (1.5 * IQR(outliersdata$BILL_AMT3))
+
+benchbalAMT3LOW <- 2666 - (1.5 * IQR(outliersdata$BILL_AMT3))
+
+IQR(outliersdata$BILL_AMT3)
+
+benchbalAMT3high
+
+benchbalAMT3LOW
+```
+
+
+**Findings **
+ 
+* Any observation above 146412.8 and below -83581.75 will be assigned the value of 146412.8 and -83581.75 respectively
+
+
+
+```{r echo=FALSE}
+outliersdata$BILL_AMT3[outliersdata$BILL_AMT3 > benchbalAMT3high] <- benchbalAMT3high
+
+outliersdata$BILL_AMT3[outliersdata$BILL_AMT3 < benchbalAMT3LOW] <- benchbalAMT3LOW
+
+```
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$BILL_AMT3, main = "Boxplot of BILL AMT3")
+summary(outliersdata$BILL_AMT3)
+```
+
+
+
+## Boxplot of BillAMT 4 
+
+```{r echo=FALSE}
+boxplot(outliersdata$BILL_AMT4,main = "Boxplot of BillAMT 4")
+
+summary(outliersdata$BILL_AMT4)
+```
+
+
+
+### Treating Outlier for Bill AMT 4 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalAMT4high <- 54506 + (1.5 * IQR(outliersdata$BILL_AMT4))
+
+benchbalAMT4LOW <- 2327- (1.5 * IQR(outliersdata$BILL_AMT4))
+
+IQR(outliersdata$BILL_AMT4)
+
+benchbalAMT4high
+
+benchbalAMT4LOW
+```
+
+
+
+**Findings **
+ 
+* Any observation above 132774.9 and below -75941.88 will be assigned the value of 132774.9 and -75941.88 respectively
+
+
+
+
+```{r echo=FALSE}
+outliersdata$BILL_AMT4[outliersdata$BILL_AMT4 > benchbalAMT4high] <- benchbalAMT4high
+
+outliersdata$BILL_AMT4[outliersdata$BILL_AMT4 < benchbalAMT4LOW] <- benchbalAMT4LOW
+
+```
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$BILL_AMT4, main = "Boxplot of BILL AMT4")
+summary(outliersdata$BILL_AMT4)
+```
+
+
+## Boxplot of BillAMT 5 
+
+```{r echo=FALSE}
+boxplot(outliersdata$BILL_AMT5,main = "Boxplot of BillAMT 5")
+
+summary(outliersdata$BILL_AMT5)
+```
+
+
+
+
+
+
+### Treating Outlier for Bill AMT 5 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalAMT5high <- 50191+ (1.5 * IQR(outliersdata$BILL_AMT5))
+
+benchbalAMT5LOW <- 1763 - (1.5 * IQR(outliersdata$BILL_AMT5))
+
+IQR(outliersdata$BILL_AMT5)
+
+benchbalAMT5high
+
+benchbalAMT5LOW
+```
+
+
+
+
+**Findings **
+ 
+* Any observation above 122832.2 and below -70878.25 will be assigned the value of 122832.2 and -70878.25 respectively
+
+
+
+
+```{r echo=FALSE}
+outliersdata$BILL_AMT5[outliersdata$BILL_AMT5 > benchbalAMT5high] <- benchbalAMT5high
+
+outliersdata$BILL_AMT5[outliersdata$BILL_AMT5 < benchbalAMT5LOW] <- benchbalAMT5LOW
+
+```
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$BILL_AMT5, main = "Boxplot of BILL AMT5")
+summary(outliersdata$BILL_AMT5)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Boxplot of BillAMT 6 
+
+```{r echo=FALSE}
+boxplot(outliersdata$BILL_AMT6,main = "Boxplot of BillAMT 6")
+
+summary(outliersdata$BILL_AMT6)
+```
+
+
+
+
+
+
+
+### Treating Outlier for Bill AMT 6 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalAMT6high <- 49198+ (1.5 * IQR(outliersdata$BILL_AMT6))
+
+benchbalAMT6LOW <- 1256 - (1.5 * IQR(outliersdata$BILL_AMT6))
+
+IQR(outliersdata$BILL_AMT6)
+
+benchbalAMT6high
+
+benchbalAMT6LOW
+```
+
+
+
+
+**Findings **
+ 
+* Any observation above 121111.4 and below -70657.38 will be assigned the value of 121111.4 and -70657.38 respectively
+
+
+
+```{r echo=FALSE}
+outliersdata$BILL_AMT6[outliersdata$BILL_AMT6 > benchbalAMT6high] <- benchbalAMT6high
+
+outliersdata$BILL_AMT6[outliersdata$BILL_AMT6 < benchbalAMT6LOW] <- benchbalAMT6LOW
+
+```
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$BILL_AMT6, main = "Boxplot of BILL AMT6")
+summary(outliersdata$BILL_AMT6)
+```
+
+
+
+
+
+## Boxplot of PAY_AMT1 
+
+```{r echo=FALSE}
+boxplot(outliersdata$PAY_AMT1,main = "Boxplot of PAY_AMT1")
+
+summary(outliersdata$PAY_AMT1)
+```
+
+
+
+
+
+### Treating Outlier for PAY_AMT1 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalPAY_AMT1high <- 5006 + (1.5 * IQR(outliersdata$PAY_AMT1))
+
+benchbalPAY_AMT1LOW <- 1000 - (1.5 * IQR(outliersdata$PAY_AMT1))
+
+IQR(outliersdata$PAY_AMT1)
+
+benchbalPAY_AMT1high
+
+benchbalPAY_AMT1LOW
+```
+
+
+
+
+**Findings **
+ 
+* Any observation above 11015 and below -5009 will be assigned the value of 11015 and -5009 
+
+
+
+
+
+```{r echo=FALSE}
+outliersdata$PAY_AMT1[outliersdata$PAY_AMT1 > benchbalPAY_AMT1high] <- benchbalPAY_AMT1high
+
+outliersdata$PAY_AMT1[outliersdata$PAY_AMT1 <benchbalPAY_AMT1LOW] <-benchbalPAY_AMT1LOW
+
+```
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$PAY_AMT1, main = "Boxplot ofPAY_AMT1")
+summary(outliersdata$PAY_AMT1)
+```
+
+
+## Boxplot of PAY_AMT2 
+
+```{r echo=FALSE}
+boxplot(outliersdata$PAY_AMT2,main = "Boxplot of PAY_AMT2")
+
+summary(outliersdata$PAY_AMT2)
+```
+
+
+
+
+
+
+
+
+### Treating Outlier for PAY_AMT2 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalPAY_AMT2high <- 5000 + (1.5 * IQR(outliersdata$PAY_AMT2))
+
+benchbalPAY_AMT2LOW <- 833 - (1.5 * IQR(outliersdata$PAY_AMT2))
+
+IQR(outliersdata$PAY_AMT2)
+
+benchbalPAY_AMT2high
+
+benchbalPAY_AMT2LOW
+```
+
+
+
+
+
+**Findings **
+ 
+* Any observation above 11250.5 and below -5417.5 will be assigned the value of 11250.5 and -5417.5
+
+
+
+
+```{r echo=FALSE}
+outliersdata$PAY_AMT2[outliersdata$PAY_AMT2 > benchbalPAY_AMT2high] <- benchbalPAY_AMT2high
+
+outliersdata$PAY_AMT2[outliersdata$PAY_AMT2 <benchbalPAY_AMT2LOW] <-benchbalPAY_AMT2LOW
+
+```
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$PAY_AMT2, main = "Boxplot ofPAY_AMT2")
+summary(outliersdata$PAY_AMT2)
+```
+
+
+## Boxplot of PAY_AMT3 
+
+```{r echo=FALSE}
+boxplot(outliersdata$PAY_AMT3,main = "Boxplot of PAY_AMT3")
+
+summary(outliersdata$PAY_AMT3)
+```
+
+
+
+
+### Treating Outlier for PAY_AMT3 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalPAY_AMT3high <-4505 + (1.5 * IQR(outliersdata$PAY_AMT3))
+
+benchbalPAY_AMT3LOW <- 390 - (1.5 * IQR(outliersdata$PAY_AMT3))
+
+IQR(outliersdata$PAY_AMT3)
+
+benchbalPAY_AMT3high
+
+benchbalPAY_AMT3LOW
+```
+
+
+
+
+
+**Findings **
+ 
+* Any observation above 10677.5 and below -5782.5 will be assigned the value of 10677.5 and -5782.5
+
+
+
+
+
+
+```{r echo=FALSE}
+outliersdata$PAY_AMT3[outliersdata$PAY_AMT3 > benchbalPAY_AMT3high] <- benchbalPAY_AMT3high
+
+outliersdata$PAY_AMT3[outliersdata$PAY_AMT3 <benchbalPAY_AMT3LOW] <-benchbalPAY_AMT3LOW
+
+```
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$PAY_AMT3, main = "Boxplot ofPAY_AMT3")
+summary(outliersdata$PAY_AMT3)
+```
+
+
+
+
+
+
+
+
+## Boxplot of PAY_AMT4 
+
+```{r echo=FALSE}
+boxplot(outliersdata$PAY_AMT4,main = "Boxplot of PAY_AMT4")
+
+summary(outliersdata$PAY_AMT4)
+```
+
+
+### Treating Outlier for PAY_AMT4 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalPAY_AMT4high <- 4013+ (1.5 * IQR(outliersdata$PAY_AMT4))
+
+benchbalPAY_AMT4LOW <- 296- (1.5 * IQR(outliersdata$PAY_AMT4))
+
+IQR(outliersdata$PAY_AMT4)
+
+benchbalPAY_AMT4high
+
+benchbalPAY_AMT4LOW
+```
+
+
+
+
+
+**Findings **
+ 
+* Any observation above 9588.875 and below -5279.875 will be assigned the value of 9588.875 and -5279.875
+
+
+
+```{r echo=FALSE}
+outliersdata$PAY_AMT4[outliersdata$PAY_AMT4 > benchbalPAY_AMT4high] <- benchbalPAY_AMT4high
+
+outliersdata$PAY_AMT4[outliersdata$PAY_AMT4 <benchbalPAY_AMT4LOW] <-benchbalPAY_AMT4LOW
+
+```
+
+
+
+
+
+
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$PAY_AMT4, main = "Boxplot ofPAY_AMT4")
+summary(outliersdata$PAY_AMT4)
+```
+
+
+
+
+
+
+
+## Boxplot of PAY_AMT5 
+
+```{r echo=FALSE}
+boxplot(outliersdata$PAY_AMT5,main = "Boxplot of PAY_AMT5")
+
+summary(outliersdata$PAY_AMT5)
+```
+
+
+
+
+
+
+
+
+
+
+### Treating Outlier for PAY_AMT5 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalPAY_AMT5high <- 4031.5+ (1.5 * IQR(outliersdata$PAY_AMT5))
+
+benchbalPAY_AMT5LOW <- 252.5 - (1.5 * IQR(outliersdata$PAY_AMT5))
+
+IQR(outliersdata$PAY_AMT5)
+
+benchbalPAY_AMT5high
+
+benchbalPAY_AMT5LOW
+```
+
+
+
+
+
+**Findings **
+ 
+* Any observation above 9700 and below -5416 will be assigned the value of 9700 and -5416
+
+
+
+```{r echo=FALSE}
+outliersdata$PAY_AMT5[outliersdata$PAY_AMT5 > benchbalPAY_AMT5high] <- benchbalPAY_AMT5high
+
+outliersdata$PAY_AMT5[outliersdata$PAY_AMT5 <benchbalPAY_AMT5LOW] <-benchbalPAY_AMT5LOW
+
+```
+
+
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$PAY_AMT5, main = "Boxplot ofPAY_AMT5")
+summary(outliersdata$PAY_AMT5)
+```
+
+
+
+
+**Findings **
+
+Created dataset called 'outliersdata' with outliers treated.
+
+
+
+
+
+## Boxplot of PAY_AMT6 
+
+```{r echo=FALSE}
+boxplot(outliersdata$PAY_AMT6,main = "Boxplot of PAY_AMT6")
+
+summary(outliersdata$PAY_AMT6)
+```
+
+### Treating Outlier for PAY_AMT6 using Winsorizing.
+
+```{r echo=FALSE}
+benchbalPAY_AMT6high <- 4000.0 + (1.5 * IQR(outliersdata$PAY_AMT6))
+
+benchbalPAY_AMT6LOW <- 117.8 - (1.5 * IQR(outliersdata$PAY_AMT6))
+
+IQR(outliersdata$PAY_AMT6)
+
+benchbalPAY_AMT6high
+
+benchbalPAY_AMT6LOW
+```
+
+
+
+
+
+**Findings **
+ 
+* Any observation above 9823.37 and below -5705.575 will be assigned the value of 9823.37 and -5705.575
+
+
+
+```{r echo=FALSE}
+outliersdata$PAY_AMT6[outliersdata$PAY_AMT6 > benchbalPAY_AMT6high] <- benchbalPAY_AMT6high
+
+outliersdata$PAY_AMT6[outliersdata$PAY_AMT6 <benchbalPAY_AMT6LOW] <-benchbalPAY_AMT6LOW
+
+```
+
+
+
+
+
+### Let's plot and check if Outliers have reduced
+
+```{r echo=FALSE}
+
+boxplot(outliersdata$PAY_AMT6, main = "Boxplot ofPAY_AMT6")
+summary(outliersdata$PAY_AMT6)
+```
+
+
+
+# Feature Engineering. Creating New Variables
+
+
+```{r echo=FALSE}
+converteddata$BILL_AMT_SUM <-
+  rowSums(converteddata[c("BILL_AMT1",
+                                  "BILL_AMT2",
+                                  "BILL_AMT3",
+                                  "BILL_AMT4",
+                                  "BILL_AMT5",
+                                  "BILL_AMT6")])
+converteddata$PAY_AMT_SUM <-
+  rowSums(converteddata[c("PAY_AMT1",
+                                  "PAY_AMT2",
+                                  "PAY_AMT3",
+                                  "PAY_AMT4",
+                                  "PAY_AMT5",
+                                  "PAY_AMT6")])
+```
+
+
+
+
+
+
+
+
+
+**Findings **
+ 
+* Created TWO NEW Variables 'BILL_AMT_SUM' and 'PAY_AMT_SUM'
+
+
+
+## EDA on the new Variable 'BILL_AMT_SUM'
+
+```{r echo=FALSE}
+ggplot(converteddata) +
+ aes(x = BILL_AMT_SUM, fill = DEFAULT) +
+ geom_histogram(bins = 30L) +
+ scale_fill_brewer(palette = "Pastel2") +
+ theme_minimal()
+```
+
+
+**Findings **
+ 
+* This is intersting! The more the Sum of Billing Amount lesser are the chances of Default
+
+
+## EDA on the new Variable 'PAY_AMT_SUM'
+
+```{r echo=FALSE}
+ggplot(converteddata) +
+ aes(x = PAY_AMT_SUM, fill = DEFAULT) +
+ geom_histogram(bins = 30L) +
+ scale_fill_brewer(palette = "Pastel2") +
+ theme_minimal()
+```
+
+
+**Findings **
+ 
+* More the 'PAY_AMT_SUM' the lesser the Default Rate
+
+
+## Let's see how they interact with each other
+
+
+```{r echo=FALSE, fig.width=9}
+ggplot(converteddata) +
+ aes(x = BILL_AMT_SUM, y = PAY_AMT_SUM, colour = DEFAULT) +
+ geom_point(size = 1L) +
+ scale_color_brewer(palette = "Pastel2") +
+ theme_minimal()
+```
+
+
+
+**Findings **
+ 
+* There definitely is some pattern. We find Defaulters more towards bottom of X axis.
+
+
+
+# Identification of Important Variables as per Submission 1 EDA
+
+As per EDA 1. The imporatant variables are Gender, Age, Education, Limit Balance and the two new variabes  'BILL_AMT_SUM' and 'PAY_AMT_SUM' we created. 
+
+
+
+# Check Correlation
+
+
+
+let's plot correlation plot between only numberical variables
+
+```{r echo=FALSE, fig.height=11, fig.width=9}
+plot_correlation((converteddata), type = "c")
+```
+
+
+
+
+
+
+
+**Findings **
+ 
+* Will replace (Pay_AMT 1 to 6) and (BILL_AMT 1 to 6) with To ('BILL_AMT_SUM' and 'PAY_AMT_SUM')
+
+
+
+
+
+# Multicollinearity
+
+Multicollinearity will be dealth by replacing (Pay_AMT 1 to 6) and (BILL_AMT 1 to 6) with To ('BILL_AMT_SUM' and 'PAY_AMT_SUM')
+
+
+
+# Assess if SMOTE is required
+
+```{r echo=FALSE}
+prop.table(table(converteddata$DEFAULT))* 100
+```
+
+
+
+```{r echo=FALSE}
+table(converteddata$DEFAULT)
+```
+
+
+**Findings **
+
+* Machine learning classifiers such as Random Forests fail to cope with imbalanced training datasets as they are sensitive to the proportions of the different classes. As a consequence, these algorithms tend to favor the class with the largest proportion of observations (known as majority class), which may lead to misleading accuracies. 
+
+* We'll create a balanced dataset. However, we'll retain the actual dataset aswell(unbalanced)
+
+```{r echo=FALSE}
+smotebalancedset <- converteddata
+```
+
+## now using SMOTE to create a more "balanced problem"
+
+```{r echo=FALSE}
+smotebalancedset <- SMOTE(DEFAULT ~ ., smotebalancedset, perc.over = 400,perc.under=100)
+table(smotebalancedset$DEFAULT)
+prop.table(table(smotebalancedset$DEFAULT)) * 100
+
+```
+
+ 
+## Let's create another SMOTE dataset with Outlier treated 
+
+
+```{r echo=FALSE}
+outliersdata <- cbind(outliersdata,converteddata[,c(25,26)])
+
+
+```
+
+
+
+
+
+```{r echo=FALSE}
+SMOTEOUTLIERTREATED <- outliersdata
+```
+
+ 
+ 
+## now using SMOTE to create a more "balanced problem"
+
+```{r echo=FALSE}
+SMOTEOUTLIERTREATED <- SMOTE(DEFAULT ~ ., SMOTEOUTLIERTREATED, perc.over = 400,perc.under=100)
+table(SMOTEOUTLIERTREATED$DEFAULT)
+prop.table(table(SMOTEOUTLIERTREATED$DEFAULT)) * 100
+
+
+```
+ 
+
+ 
+## Create Standarized dataset. Data standardization is about making sure that data is internally consistent; that is, each data type has the same content and format
+
+```{r echo=FALSE}
+standardizeddaaset <- converteddata
+```
+
+### Standarized Dataet
+
+```{r echo=FALSE}
+standardizeddaaset$PAY_1<- as.numeric(as.character(standardizeddaaset$PAY_1))
+```
+
+
+```{r echo=FALSE}
+standardizeddaaset$PAY_2<- as.numeric(as.character(standardizeddaaset$PAY_2))
+```
+
+
+```{r echo=FALSE}
+standardizeddaaset$PAY_3<- as.numeric(as.character(standardizeddaaset$PAY_3))
+```
+
+
+
+```{r echo=FALSE}
+standardizeddaaset$PAY_4<- as.numeric(as.character(standardizeddaaset$PAY_4))
+```
+
+
+
+
+```{r echo=FALSE}
+standardizeddaaset$PAY_5<- as.numeric(as.character(standardizeddaaset$PAY_5))
+```
+
+
+
+```{r}
+standardizeddaaset$PAY_6<- as.numeric(as.character(standardizeddaaset$PAY_6))
+```
+
+ 
+```{r echo=FALSE}
+vecforstan<- c(1,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,25,26)
+```
+
+
+
+ 
+```{r echo=FALSE}
+options(digits=2)
+
+for (i in vecforstan) {
+
+standardizeddaaset[,i] <- scale(standardizeddaaset[,i],center = TRUE, scale = TRUE)
+  
+}
+```
+ 
+```{r echo=FALSE}
+summary(standardizeddaaset)
+```
+ 
+```{r echo=FALSE}
+standardizeddaaset<- as.data.frame(standardizeddaaset)
+```
+ 
+
+# List out different models/algorithms
+
+It is a Classification problem. We would like to predict DEFAULTERS. Models used are :
+
+
+1) **Logistic Regression**
+
+
+Definition: Logistic regression is a machine learning algorithm for classification. In this algorithm, the probabilities describing the possible outcomes of a single trial are modelled using a logistic function
+
+Advantages: Logistic regression is designed for this purpose (classification), and is most useful for understanding the influence of several independent variables on a single outcome variable
+
+2) **Naïve Bayes**
+
+
+Definition: Naive Bayes algorithm based on Bayes’ theorem with the assumption of independence between every pair of features. Naive Bayes classifiers work well in many real-world situations such as document classification and spam filtering.
+
+Advantages: This algorithm requires a small amount of training data to estimate the necessary parameters. Naive Bayes classifiers are extremely fast compared to more sophisticated methods.
+
+3) **K-Nearest Neighbours**
+
+
+Definition: Neighbours based classification is a type of lazy learning as it does not attempt to construct a general internal model, but simply stores instances of the training data. Classification is computed from a simple majority vote of the k nearest neighbours of each point.
+
+Advantages: This algorithm is simple to implement, robust to noisy training data, and effective if training data is large.
+
+
+4) **Decision Tree**
+
+
+Definition: Given a data of attributes together with its classes, a decision tree produces a sequence of rules that can be used to classify the data.
+
+Advantages: Decision Tree is simple to understand and visualise, requires little data preparation, and can handle both numerical and categorical data.
+
+
+5) **Random Forest**
+
+
+Definition: Random forest classifier is a meta-estimator that fits a number of decision trees on various sub-samples of datasets and uses average to improve the predictive accuracy of the model and controls over-fitting. The sub-sample size is always the same as the original input sample size but the samples are drawn with replacement.
+
+Advantages: Reduction in over-fitting and random forest classifier is more accurate than decision trees in most cases.
+
+
+
+# **SUMMARY OF NOTES 2**
+
+1) Created New Variables BILL_AMT_SUM and PAY_AMT_SUM
+
+2) EDA of NEW VARIABLES
+
+3) Outliers Treated
+
+4) Multiple Datasets created. Actual, outlier treated, SMOTE OUTLIER, Standardization SMOTE
+
+5) Clearly mentioned models and their advantages to be used to predict DEFAULTERS
+
+6) DATASET WILL BE SPLIT IN 70 - 30 Ratio for all models.
+
+
+
+\newpage
+
+
+
+
+## Datasets to be used 
+
+
+1) Feature Engineered but not outlier treated ( 'BILL_AMT_SUM' and 'PAY_AMT_SUM')
+
+2) Feature Engineered and Outlier Treated  
+
+3) SMOTE Dataset(Outlier Not treated)
+
+4) SMOTE Outlier Treated 
+
+5) Standardized
+
+
+
+
+
+## Steps
+
+1) Create 5 models on 5 different datasets ( Training Set)
+
+2) Tune Model (Adaboost)
+
+3) Use the best one on TEST set and Final model
+
+
+
+# Evaluation Matrix 
+
+![ConMatrix ](confusionMatrxiUpdated.jpg)
+
+**We'll look into Sensitivity and Accuracy more closely** as we are more bothered of DEFAULTERS than NON DEFAULTERS as they can bring the whole banking system down if Credit or Loan is given to wrong people.
+
+
+
+
+
+
+
+
+## Datasets
+
+### Feature Engineered 
+
+
+
+
+
+```{r echo=FALSE}
+converteddata$PAY_1<- as.numeric(as.character(converteddata$PAY_1))
+```
+
+
+```{r echo=FALSE}
+converteddata$PAY_2<- as.numeric(as.character(converteddata$PAY_2))
+```
+
+
+```{r echo=FALSE}
+converteddata$PAY_3<- as.numeric(as.character(converteddata$PAY_3))
+```
+
+
+
+```{r echo=FALSE}
+converteddata$PAY_4<- as.numeric(as.character(converteddata$PAY_4))
+```
+
+
+
+
+
+
+```{r echo=FALSE}
+converteddata$PAY_5<- as.numeric(as.character(converteddata$PAY_5))
+```
+
+
+
+```{r echo=FALSE}
+converteddata$PAY_6<- as.numeric(as.character(converteddata$PAY_6))
+```
+
+
+
+```{r echo=FALSE}
+FeatEngineered <- converteddata[,-c(12:23)]
+```
+
+
+### Feature Engineered with Outlier Treated
+
+```{r echo=FALSE}
+outliersdata$PAY_1<- as.numeric(as.character(outliersdata$PAY_1))
+```
+
+
+```{r}
+outliersdata$PAY_2<- as.numeric(as.character(outliersdata$PAY_2))
+```
+
+
+```{r echo=FALSE}
+outliersdata$PAY_3<- as.numeric(as.character(outliersdata$PAY_3))
+```
+
+
+
+```{r echo=FALSE}
+outliersdata$PAY_4<- as.numeric(as.character(outliersdata$PAY_4))
+```
+
+
+
+
+```{r echo=FALSE}
+outliersdata$PAY_5<- as.numeric(as.character(outliersdata$PAY_5))
+```
+
+
+
+```{r echo=FALSE}
+outliersdata$PAY_6<- as.numeric(as.character(outliersdata$PAY_6))
+```
+
+```{r echo=FALSE}
+OTFeatEnginerd <- outliersdata[,-c(12:23)]
+```
+
+
+### SMOTE
+
+
+```{r echo=FALSE}
+smotebalancedset$PAY_1<- as.numeric(as.character(smotebalancedset$PAY_1))
+```
+
+
+```{r echo=FALSE}
+smotebalancedset$PAY_2<- as.numeric(as.character(smotebalancedset$PAY_2))
+```
+
+
+```{r echo=FALSE}
+smotebalancedset$PAY_3<- as.numeric(as.character(smotebalancedset$PAY_3))
+```
+
+
+
+```{r echo=FALSE}
+smotebalancedset$PAY_4<- as.numeric(as.character(smotebalancedset$PAY_4))
+```
+
+
+
+
+```{r echo=FALSE}
+smotebalancedset$PAY_5<- as.numeric(as.character(smotebalancedset$PAY_5))
+```
+
+
+
+```{r echo=FALSE}
+smotebalancedset$PAY_6<- as.numeric(as.character(smotebalancedset$PAY_6))
+```
+
+
+```{r echo=FALSE}
+SMOTEdataset <- smotebalancedset[,-c(12:23)]
+```
+
+
+
+
+### SMOTE Outlier treated
+
+
+```{r echo=FALSE}
+SMOTEOUTLIERTREATED$PAY_1<- as.numeric(as.character(SMOTEOUTLIERTREATED$PAY_1))
+```
+
+
+```{r echo=FALSE}
+SMOTEOUTLIERTREATED$PAY_2<- as.numeric(as.character(SMOTEOUTLIERTREATED$PAY_2))
+```
+
+
+```{r echo=FALSE}
+SMOTEOUTLIERTREATED$PAY_3<- as.numeric(as.character(SMOTEOUTLIERTREATED$PAY_3))
+```
+
+
+
+```{r echo=FALSE}
+SMOTEOUTLIERTREATED$PAY_4<- as.numeric(as.character(SMOTEOUTLIERTREATED$PAY_4))
+```
+
+
+
+
+```{r echo=FALSE}
+SMOTEOUTLIERTREATED$PAY_5<- as.numeric(as.character(SMOTEOUTLIERTREATED$PAY_5))
+```
+
+
+
+```{r echo=FALSE}
+SMOTEOUTLIERTREATED$PAY_6<- as.numeric(as.character(SMOTEOUTLIERTREATED$PAY_6))
+```
+
+
+```{r echo=FALSE}
+OTSMOTE <- SMOTEOUTLIERTREATED[,-c(12:23)]
+```
+
+
+
+
+
+```{r echo=FALSE}
+standardDS<- standardizeddaaset[,-c(12:23)]
+```
+
+
+
+
+# Model Evaluation
+
+MODEL WILL BE EVALUATED USING SENSITIVITY AND ACCURACY
+
+
+\newpage
+
+![CMATRIX ](confusionMatrxiUpdated.jpg)
+
+
+
+
+
+
+
+
+# Splitting Datasets 70:30 ratio
+
+## Splittig Feature Engineered but not outlier treated
+
+```{r echo=FALSE}
+seed <- 101
+set.seed(seed)
+
+sampleFeatEngineered <- sample.split(FeatEngineered$DEFAULT,SplitRatio = 0.7)
+FeatEngineered.train <- subset(FeatEngineered,sampleFeatEngineered == TRUE)
+FeatEngineered.test <- subset(FeatEngineered,sampleFeatEngineered == FALSE)
+
+```
+
+
+## Splittig Feature Engineered  outlier treated
+ 
+
+
+
+```{r echo=FALSE}
+set.seed(seed)
+sampleOTFeatEnginerd <- sample.split(OTFeatEnginerd$DEFAULT,SplitRatio = 0.7)
+OTFeatEnginerd.train <- subset(OTFeatEnginerd,sampleOTFeatEnginerd == TRUE)
+OTFeatEnginerd.test <- subset(OTFeatEnginerd,sampleOTFeatEnginerd == FALSE)
+
+```
+
+
+
+## Splitting SMOTE without outlier treat
+
+```{r echo=FALSE}
+set.seed(seed)
+
+sampleSMOTE <- sample.split(SMOTEdataset$DEFAULT,SplitRatio = 0.7)
+SMOTE.train <- subset(SMOTEdataset,sampleSMOTE == TRUE)
+SMOTE.test <- subset(SMOTEdataset,sampleSMOTE == FALSE)
+
+
+```
+
+
+
+
+## Splitting OT SMOTE Dataset
+
+
+```{r echo=FALSE}
+set.seed(seed)
+
+sampleOTSMOTE <- sample.split(OTSMOTE$DEFAULT,SplitRatio = 0.7)
+SMOTE.OTSMOTE.train <- subset(OTSMOTE,sampleOTSMOTE == TRUE)
+SMOTE.OTSMOTE.test <- subset(OTSMOTE,sampleOTSMOTE == FALSE)
+```
+
+
+
+## Splitting Standarized Dataset
+
+
+
+```{r echo=FALSE}
+set.seed(seed)
+
+samplestandardDS <- sample.split(standardDS$DEFAULT,SplitRatio = 0.7)
+standardDS.train <- subset(standardDS,samplestandardDS == TRUE)
+standardDS.test <- subset(standardDS,samplestandardDS == FALSE)
+```
+
+
+
+# Building Models
+
+## Logistic Regression on Feature Engineered Dataset
+
+### Full Model Stepwise
+
+
+```{r echo=FALSE}
+fullmodFeatEngineered <- glm(DEFAULT ~. ,family=binomial,data=FeatEngineered.train)
+
+```
+
+
+
+### Empty Model
+
+```{r echo=FALSE}
+emptyModelFeatEngineered<- glm(DEFAULT ~ 1,family=binomial,data = FeatEngineered.train)
+```
+
+
+
+
+
+
+### Backward Selection of significant variables
+
+```{r echo=FALSE}
+backwardsFeatEngineered = step(fullmodFeatEngineered) 
+```
+
+
+
+
+
+
+
+
+### Variable Selection using direction BOTH
+
+```{r echo=FALSE}
+forwardsFeatEngineered = step(emptyModelFeatEngineered,scope=list(lower=formula(emptyModelFeatEngineered),upper=formula(fullmodFeatEngineered)), direction="both")
+```
+
+
+
+
+```{r echo=FALSE}
+FitLogModelFeatEng <- glm(DEFAULT ~ PAY_1 + PAY_AMT_SUM + PAY_2 + EDUCATION + AGE + LIMIT_BAL + 
+    PAY_3 + MARRIAGE + SEX + BILL_AMT_SUM + PAY_6 , data=FeatEngineered.train,family="binomial")
+
+summary(FitLogModelFeatEng)
+```
+
+
+
+
+### Predict Test Set
+
+```{r echo=FALSE}
+logpredFeatEng<- predict(FitLogModelFeatEng,FeatEngineered.test[-12],type = "response")
+```
+
+
+
+### Converting Prob to Classes
+
+
+```{r echo=FALSE}
+ypredlogfeatEng <- as.factor(ifelse(logpredFeatEng > 0.5,"Yes","No"))
+
+```
+
+```{r include=FALSE}
+ypredlogfeatEng
+```
+
+
+### Confusion Matrix
+
+```{r echo=FALSE}
+confusionMatrix(FeatEngineered.test$DEFAULT,ypredlogfeatEng, positive = "Yes", mode = "everything")
+```
+
+
+**Findings** 
+
+* Accuracy is good. However, Sensitivity can be improved
+
+
+
+
+## KNN Model 
+
+
+
+```{r echo=FALSE}
+KNNControlCaretFeatEng <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+```
+
+
+```{r echo=FALSE}
+knnCaretFeatEng <- train(DEFAULT~., data = FeatEngineered.train, method = "knn",
+                 trControl=KNNControlCaretFeatEng,
+                 tuneLength = 5)
+
+
+```
+
+
+
+
+
+```{r echo=FALSE}
+knnCaretFeatEng
+```
+
+
+
+
+
+### #Plotting Number of Neighbours Vs accuracy (based on repeated cross validation)
+
+```{r echo=FALSE}
+plot(knnCaretFeatEng)
+```
+
+
+
+
+
+
+**Findings** 
+
+* 33 is the best K value 
+      
+### Let's predict for Test Data    
+    
+      
+```{r echo=FALSE, warning=FALSE}
+testCaretKNNFeatEngg <- predict(knnCaretFeatEng, newdata = FeatEngineered.test)
+```
+
+
+
+
+### Confusion Matrix
+
+
+```{r echo=FALSE}
+confusionMatrix( FeatEngineered.test$DEFAULT,testCaretKNNFeatEngg,positive = "Yes", mode = "everything")
+```
+
+
+
+**Findings** 
+
+* Sensitivity is Very LOW. We'll buld multiple models with SMOTE dataset, Standardized and SMOTE Standardized 
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r echo=FALSE}
+ROCtestFeatEnginerd<- roc.curve(FeatEngineered.test$DEFAULT,testCaretKNNFeatEngg, main="ROC curve KNN")
+```
+
+
+
+## Naive Bayes Model
+
+```{r echo=FALSE}
+
+
+nb_FeatEngreed<-naiveBayes(x=FeatEngineered.train[,-12], y=FeatEngineered.train[,12])
+
+
+
+```
+
+
+
+
+
+
+
+```{r echo=FALSE}
+pred_nbFeatEngineered<-predict(nb_FeatEngreed,newdata = FeatEngineered.test[,-12])
+
+
+```
+
+
+
+
+
+```{r echo=FALSE}
+confusionMatrix( FeatEngineered.test$DEFAULT,pred_nbFeatEngineered,positive = "Yes", mode = "everything")
+```
+
+
+
+
+
+**Findings** 
+
+* Sensitivity is  LOW. We'll try and improve using CART, Random Forest, Bagging and Boosting Model
+
+
+
+
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r echo=FALSE}
+ROCtestfeatenginerrred<- roc.curve(FeatEngineered.test$DEFAULT,pred_nbFeatEngineered, main="ROC curve NB")
+```
+
+
+
+
+
+
+ 
+# CART with Tuning Parameters
+
+```{r echo=FALSE}
+
+fitControlFeatengnred <- trainControl(
+    method = 'cv',                   
+    number = 5,                      
+    savePredictions = 'final',       
+    classProbs = T,                  
+    summaryFunction=twoClassSummary  
+) 
+```
+
+
+ 
+ 
+ 
+ 
+ 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+set.seed(seed)
+model_marsfeatenginerred = train(DEFAULT ~ ., data=FeatEngineered.train, method='rpart', tuneLength = 15, metric='ROC', trControl = fitControlFeatengnred,parms = list(split = "gini"))
+
+```
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+```{r echo=FALSE}
+model_marsfeatenginerred
+```
+
+
+**Findings** 
+
+* nprune 18 is optimal prune 
+  
+
+
+
+
+### Plotting Tree
+
+
+```{r fig.width=10}
+fancyRpartPlot(model_marsfeatenginerred$finalModel)
+```
+
+ 
+### Predict on testData and Compute the confusion matrix
+
+```{r echo=FALSE}
+
+predictedfeatenginrd <- predict(model_marsfeatenginerred, FeatEngineered.test)
+
+```
+
+
+
+
+
+```{r echo=FALSE}
+confusionMatrix(reference = FeatEngineered.test$DEFAULT, data = predictedfeatenginrd , mode='everything', positive='Yes')
+```
+
+
+**Findings** 
+
+* Sensitivity is LOW 
+
+
+
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r echo=FALSE}
+ROCtestfeatengrdcart<- roc.curve(FeatEngineered.test$DEFAULT,predictedfeatenginrd, main="ROC curve CART")
+```
+
+
+
+
+## Random FOrest with tuning Parameters
+
+
+
+
+```{r echo=FALSE}
+fitControlStandadizedRF <- trainControl(
+    method = 'cv',                   
+    number = 5,                      
+    savePredictions = 'final',       
+    classProbs = T,                  
+    summaryFunction=twoClassSummary  
+) 
+```
+
+
+
+
+
+
+
+```{r echo=FALSE}
+set.seed(seed)
+
+
+model_rfFeatEnginerred= train(DEFAULT ~ ., data=FeatEngineered.train, method='rf', tuneLength=5, metric='ROC', trControl = fitControlStandadizedRF)
+
+```
+
+
+
+
+```{r echo=FALSE}
+model_rfFeatEnginerred
+```
+
+
+**Findings** 
+
+* mtry = 2 is optimal selected by the model
+
+
+
+
+
+
+
+### Predict RF
+
+```{r echo=FALSE}
+predictedRFFeatEnginerred <- predict(model_rfFeatEnginerred, FeatEngineered.test) 
+```
+
+
+
+
+
+
+
+
+```{r echo=FALSE}
+confusionMatrix(reference = FeatEngineered.test$DEFAULT, data = predictedRFFeatEnginerred, mode='everything', positive='Yes')
+```
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r echo=FALSE}
+ROCtestFeatEngrded<- roc.curve(FeatEngineered.test$DEFAULT,predictedRFFeatEnginerred, main="ROC curve RF")
+```
+
+
+
+## BAGGING
+
+### BAGGING
+
+```{r echo=FALSE}
+BaggingFeatEngineered <- bagging(DEFAULT ~.,
+data=FeatEngineered.train,
+control=rpart.control(maxdepth=30, minsplit=1))
+```
+
+
+
+### Predicting Bagging
+
+
+```{r echo=FALSE}
+
+
+BaggingFeatEnginrrrrdd <- predict(BaggingFeatEngineered, FeatEngineered.test)
+BaggingFeatEnginrrrrdd$class<- as.factor(BaggingFeatEnginrrrrdd$class)
+class(BaggingFeatEnginrrrrdd$class)
+
+```
+
+
+
+### Confusion Matrix
+```{r echo=FALSE}
+confusionMatrix(FeatEngineered.test$DEFAULT, BaggingFeatEnginrrrrdd$class,positive = "Yes", mode = "everything")
+```
+
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r echo=FALSE}
+ROCtestfeatEnginederedered<- roc.curve(FeatEngineered.test$DEFAULT,BaggingFeatEnginrrrrdd$class, main="ROC curve Bagging")
+```
+
+
+
+
+
+
+
+## Boosting 
+ 
+ 
+ 
+ 
+### adaBoost with adabag
+
+```{r echo=FALSE}
+adaboostmodelFeatEngineered <- boosting(DEFAULT~., data=FeatEngineered.train, boos=TRUE, mfinal=50) 
+```
+
+### Print Tree
+
+```{r echo=FALSE}
+print(names(adaboostmodelFeatEngineered))
+print(adaboostmodelFeatEngineered$trees[1])
+```
+ 
+ 
+ 
+ 
+ 
+ ### Predict on test set
+
+```{r echo=FALSE}
+predAdaBoostsFeatEngineered = predict(adaboostmodelFeatEngineered, FeatEngineered.test)
+print(predAdaBoostsFeatEngineered$confusion)
+print(predAdaBoostsFeatEngineered$error)
+```
+ 
+ 
+ 
+ 
+ ### Converting to factors
+
+
+```{r echo=FALSE}
+predAdaBoostsFeatEngineered$class<- as.factor(predAdaBoostsFeatEngineered$class)
+```
+
+
+
+### Confusion Matrix and evaluation
+
+```{r echo=FALSE}
+confusionMatrix(FeatEngineered.test$DEFAULT,predAdaBoostsFeatEngineered$class,mode="everything",positive = "Yes")
+```
+
+
+
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r echo=FALSE}
+ROCtestFeatEnginered<- roc.curve(FeatEngineered.test$DEFAULT,predAdaBoostsFeatEngineered$class, main="ROC curve")
+```
+
+
+
+
+
+
+
+
+# Building Models with SMOTE Dataset
+
+## Logistic Regression on Feature Engineered Dataset
+
+### Full Model Stepwise
+
+
+```{r message=FALSE, warning=FALSE}
+fullmodSMOTE <- glm(DEFAULT ~. ,family=binomial,data=SMOTE.train)
+
+```
+
+
+
+### Empty Model
+
+```{r echo=FALSE}
+emptyModelSMOTE<- glm(DEFAULT ~ 1,family=binomial,data = SMOTE.train)
+```
+
+
+
+
+
+
+### Backward Selection of significant variables
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+backwardsSMOTE = step(fullmodSMOTE) 
+```
+
+
+
+
+### Variable Selection using direction BOTH
+
+```{r echo=FALSE, warning=FALSE}
+forwardsSMOTE = step(emptyModelSMOTE,scope=list(lower=formula(emptyModelSMOTE),upper=formula(fullmodSMOTE)), direction="both")
+```
+
+
+
+## Fitting Model
+```{r echo=FALSE, warning=FALSE}
+FitLogMSMOTE <- glm(DEFAULT ~ PAY_1 + PAY_AMT_SUM + PAY_2 + PAY_3 + SEX + EDUCATION + 
+    BILL_AMT_SUM + PAY_5 + MARRIAGE + PAY_4 + PAY_6 + AGE , data= SMOTE.train,family="binomial")
+
+summary(FitLogMSMOTE)
+```
+
+
+
+
+
+```{r}
+vif(FitLogMSMOTE)
+```
+
+
+
+### Predict Test Set
+
+```{r echo=FALSE}
+logpredSMOTE<- predict(FitLogMSMOTE,SMOTE.test,type = "response")
+```
+
+
+
+
+
+
+### Converting Prob to Classes
+
+
+```{r echo=FALSE}
+ypredlogSMOTE <- as.factor(ifelse(logpredSMOTE > 0.5,"Yes","No"))
+
+```
+
+```{r include=FALSE}
+ypredlogSMOTE
+```
+
+
+
+
+
+
+### ConfusionMatrix and Training Model Evaluation
+
+
+```{r echo=FALSE}
+confusionMatrix( SMOTE.test$DEFAULT,ypredlogSMOTE,positive = "Yes", mode = "everything")
+```
+
+
+
+
+**Findings**  
+
+* Sensitivity is Better compared to Regular Dataset. Let's try other models on this dataset to get it to perform better
+
+
+
+
+### Let's build KNN model with Optimal K value. Also, validate model using 10 fold Cross Validation   
+   
+      
+
+```{r echo=FALSE}
+KNNControlCaretSMOTE <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+```
+
+
+```{r}
+knnCaretSMOTE <- train(DEFAULT~., data = SMOTE.train, method = "knn",
+                 trControl=KNNControlCaretSMOTE,
+                 tuneLength = 5)
+
+
+```
+
+
+
+
+```{r}
+knnCaretSMOTE
+```
+
+
+
+### #Plotting Number of Neighbours Vs accuracy (based on repeated cross validation)
+
+```{r echo=FALSE}
+plot(knnCaretSMOTE)
+```
+
+
+
+
+
+
+### Let's predict for Test Data    
+    
+      
+```{r echo=FALSE, warning=FALSE}
+
+testCaretKNNSMOTE <- predict(knnCaretSMOTE, newdata = SMOTE.test)
+```
+
+
+
+
+### Confusion Matrix
+
+```{r}
+confusionMatrix( SMOTE.test$DEFAULT,testCaretKNNSMOTE,positive = "Yes", mode = "everything")
+```
+
+
+
+
+### Let's start building Naive Bayes with Cross Validation using  Caret    
+     
+
+
+
+
+
+```{r echo=FALSE, warning=FALSE}
+library(e1071)
+
+nb_SMOTE<-naiveBayes(x=SMOTE.train[,-12], y=SMOTE.train[,12])
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+pred_nbSMOTE<-predict(nb_SMOTE,newdata = SMOTE.test[,-12])
+
+
+```
+
+
+
+
+
+```{r}
+confusionMatrix(pred_nbSMOTE, SMOTE.test$DEFAULT,positive = "Yes", mode = "everything")
+```
+
+
+
+
+
+
+# CART with Tuning Parameters
+
+```{r}
+
+fitControlSMOTECART <- trainControl(
+    method = 'cv',                   
+    number = 5,                      
+    savePredictions = 'final',       
+    classProbs = T,                  
+    summaryFunction=twoClassSummary  
+) 
+```
+
+
+
+
+
+```{r}
+library(earth)
+```
+
+
+
+
+```{r message=FALSE, warning=FALSE}
+
+set.seed(seed)
+model_marsSMOTE = train(DEFAULT ~ ., data=SMOTE.train, method='rpart',parms = list(split = "information"), tuneLength = 15, metric='ROC', trControl = fitControlSMOTECART)
+
+```
+
+
+
+
+```{r}
+model_marsSMOTE 
+```
+
+
+
+## Build Tree
+
+```{r fig.height=9}
+fancyRpartPlot(model_marsSMOTE$finalModel)
+```
+
+
+
+
+
+
+
+Predict on testData and Compute the confusion matrix
+
+```{r}
+
+predictedCARTSMOTE <- predict(model_marsSMOTE, SMOTE.test)
+
+```
+
+
+
+
+
+```{r}
+confusionMatrix(reference = SMOTE.test$DEFAULT, data = predictedCARTSMOTE, mode='everything', positive='Yes')
+```
+
+
+
+**Findings**  
+
+* Sensitivity is Better compared to previous models. Let's try Random Forest on this dataset
+
+
+
+
+
+
+## Random FOrest with tuning Parameters
+
+```{r echo=FALSE}
+fitControlSMOTERF <- trainControl(
+    method = 'cv',                   
+    number = 5,                      
+    savePredictions = 'final',       
+    classProbs = T,                  
+    summaryFunction=twoClassSummary  
+) 
+```
+
+
+
+
+
+
+
+
+
+```{r echo=FALSE}
+set.seed(seed)
+
+
+model_rfSMOTE = train(DEFAULT ~ ., data=SMOTE.train, method='rf', tuneLength=5, metric='ROC', trControl = fitControlSMOTERF)
+
+```
+
+
+
+
+```{r}
+model_rfSMOTE
+```
+
+
+
+
+
+
+### Predict RF
+
+```{r echo=FALSE}
+predictedRFSMOTE <- predict(model_rfSMOTE, SMOTE.test) 
+```
+
+
+
+List the importance of the variables. Larger the MeanDecrease values, the more important the variable. Look at the help files to get a better sense of how these are computed.
+```{r}
+plot(model_rfSMOTE, top = 20)
+```
+
+```{r fig.width=9}
+RFSMOTEimp <- varImp(model_rfSMOTE, scale = FALSE)
+
+RFSMOTEimp
+
+plot(RFSMOTEimp, top = 20)
+```
+
+
+
+```{r}
+confusionMatrix(reference = SMOTE.test$DEFAULT, data = predictedRFSMOTE, mode='everything', positive='Yes')
+```
+
+
+
+
+
+
+**Findings**  
+
+* Sensitivity is Better compared to all the models so far. Sensitivity is also good.
+
+
+
+
+# Model using Standardized Dataset
+
+## Logistic Regression on Feature Engineered Dataset
+
+### Full Model Stepwise
+
+
+```{r}
+fullmodStandardized <- glm(DEFAULT ~. ,family=binomial,data=standardDS.train)
+
+```
+
+
+
+### Empty Model
+
+```{r}
+emptyModeltandardized<- glm(DEFAULT ~ 1,family=binomial,data = standardDS.train)
+```
+
+
+
+
+
+
+### Backward Selection of significant variables
+
+```{r}
+backwardstandardized = step(fullmodStandardized) 
+
+```
+
+
+
+
+
+
+
+
+
+
+### Variable Selection using direction BOTH
+
+```{r warning=FALSE}
+forwardsstandardized  = step(emptyModeltandardized,scope=list(lower=formula(emptyModeltandardized),upper=formula(fullmodStandardized)), direction="both")
+
+
+```
+
+
+
+
+
+
+
+
+
+### Logistic Regression Model   
+    
+       
+```{r}
+FitLogModelstandardized <- glm(DEFAULT ~ PAY_1 + PAY_AMT_SUM + PAY_2 + EDUCATION + AGE + LIMIT_BAL + 
+    PAY_3 + MARRIAGE + SEX + BILL_AMT_SUM + PAY_6, data=standardDS.train,family= binomial(link='logit'))
+
+
+```
+
+
+
+
+### Checking for Multicollinearity    
+    
+```{r}
+vif(FitLogModelstandardized)
+```
+
+**No Multicollinearity**
+
+
+```{r}
+summary(FitLogModelstandardized)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Predict Test Set
+
+```{r}
+logpredstandarized<- predict(FitLogModelstandardized,standardDS.test[-12],type = "response")
+```
+
+
+
+### Converting Prob to Classes
+
+
+```{r}
+ypredlogstandardized <- as.factor(ifelse(logpredstandarized > 0.5,"Yes","No"))
+
+```
+
+```{r include=FALSE}
+ypredlogstandardized
+```
+
+
+
+### Confusion Matrix
+
+```{r}
+confusionMatrix( standardDS.test$DEFAULT,ypredlogstandardized,positive = "Yes", mode = "everything")
+```
+
+
+
+
+
+
+
+**Findings** 
+
+* Accuracy is good. However, Sensitivitycan be improved. We'll try other models
+
+
+
+
+
+
+
+
+## KNN Model 
+
+
+
+```{r echo=FALSE}
+KNNControlstandardized <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+```
+
+
+```{r echo=FALSE}
+knnCaretstandardized <- train(DEFAULT~., data = standardDS.train, method = "knn",
+                 trControl=KNNControlstandardized,
+                 tuneLength = 5)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+knnCaretstandardized
+```
+
+
+
+
+### #Plotting Number of Neighbours Vs accuracy (based on repeated cross validation)
+
+```{r}
+plot(knnCaretstandardized)
+```
+
+
+
+
+
+
+**Findings** 
+
+* 13 is the best K value 
+
+
+
+
+      
+### Let's predict for Test Data 
+
+
+      
+```{r warning=FALSE}
+testCaretstandardized <- predict(knnCaretstandardized, newdata = standardDS.test)
+```
+
+
+
+
+### Confusion Matrix
+
+
+```{r}
+confusionMatrix( standardDS.test$DEFAULT,testCaretstandardized, positive = "Yes", mode = "everything")
+```
+
+
+
+ 
+ 
+ 
+ 
+ **Findings** 
+
+* Sensitivity is OK. Let's improve using Naive Bayes, CART, Random Forest and Boosting
+
+
+
+
+
+
+
+
+### Let's start building Naive Bayes with Cross Validation using  Caret    
+     
+
+
+
+
+
+```{r}
+library(e1071)
+
+nb_standarized<-naiveBayes(x=standardDS.train[,-12], y=standardDS.train[,12])
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+pred_nbstandardized<-predict(nb_standarized,newdata = standardDS.test[,-12])
+
+
+```
+
+
+
+
+
+```{r}
+confusionMatrix( standardDS.test$DEFAULT,pred_nbstandardized,positive = "Yes", mode = "everything")
+```
+
+
+
+
+ 
+ **Findings** 
+
+* Sensitivity has improved. Let's improve even more using CART, Random Forest and Boosting
+ 
+ 
+ 
+ 
+# CART with Tuning Parameters
+
+```{r echo=FALSE}
+
+fitControlstandardized <- trainControl(
+    method = 'cv',                   
+    number = 5,                      
+    savePredictions = 'final',       
+    classProbs = T,                  
+    summaryFunction=twoClassSummary  
+) 
+```
+
+
+
+
+
+```{r}
+library(earth)
+```
+ 
+ 
+ 
+ 
+ 
+```{r}
+
+set.seed(seed)
+model_marsstandardized = train(DEFAULT ~ ., data=standardDS.train, method='rpart',parms = list(split = "gini"), tuneLength = 15, metric='ROC', trControl = fitControlstandardized)
+
+```
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+```{r}
+model_marsstandardized
+```
+
+**Findings** 
+
+* nprune cp = 0.0007534984
+  
+ 
+ 
+### Predict on testData and Compute the confusion matrix
+
+```{r}
+
+predictedstandardized <- predict(model_marsstandardized, standardDS.test)
+
+```
+
+
+
+
+
+```{r}
+confusionMatrix(reference = standardDS.test$DEFAULT, data = predictedstandardized , mode='everything', positive='Yes')
+```
+ 
+ 
+ 
+ **Findings** 
+
+* Sensitivity has improved. Let's improve even more using Random Forest and Boosting
+ 
+ 
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r echo=FALSE}
+ROCtestCART<- roc.curve(standardDS.test$DEFAULT,predictedstandardized, main="ROC curve CART")
+```
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+## Random FOrest with tuning Parameters
+
+```{r echo=FALSE}
+fitControlStandadizedRF <- trainControl(
+    method = 'cv',                   
+    number = 5,                      
+    savePredictions = 'final',       
+    classProbs = T,                  
+    summaryFunction=twoClassSummary  
+) 
+```
+
+
+
+
+
+
+
+
+
+```{r echo=FALSE}
+set.seed(seed)
+
+
+model_rfstandardized = train(DEFAULT ~ ., data=standardDS.train, method='rf', tuneLength=5, metric='ROC', trControl = fitControlStandadizedRF)
+
+```
+
+
+
+
+```{r}
+model_rfstandardized
+```
+ 
+**Findings** 
+
+* mtry = 2 is optimal selected by the model
+
+
+
+
+
+
+
+### Predict RF
+
+```{r}
+predictedRFstandardize <- predict(model_rfstandardized, standardDS.test) 
+```
+
+
+
+
+
+
+
+
+```{r}
+confusionMatrix(reference = standardDS.test$DEFAULT, data = predictedRFstandardize, mode='everything', positive='Yes')
+```
+
+
+
+
+
+**Findings** 
+
+* Sensitivity is not good. 
+
+
+
+### Receiver Operating Characteristic Curve (ROC) RF
+
+```{r}
+ROCtestRF<- roc.curve(standardDS.test$DEFAULT,predictedRFstandardize, main="ROC curve RF")
+```
+
+
+
+
+
+
+
+
+## BAGGING
+
+### BAGGING
+
+```{r echo=FALSE}
+Car.Baggingstandardize <- bagging(DEFAULT ~.,
+data=standardDS.train,
+control=rpart.control(maxdepth=30, minsplit=1))
+```
+
+
+
+### Predicting Bagging
+
+
+```{r echo=FALSE}
+
+
+BaggingCarstandardize <- predict(Car.Baggingstandardize, standardDS.test)
+BaggingCarstandardize$class<- as.factor(BaggingCarstandardize$class)
+class(BaggingCarstandardize$class)
+
+```
+
+
+
+### Confusion Matrix
+```{r}
+confusionMatrix(standardDS.test$DEFAULT, BaggingCarstandardize$class,positive = "Yes", mode = "everything")
+```
+
+
+
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r}
+ROCtestBAGGING<- roc.curve(standardDS.test$DEFAULT,BaggingCarstandardize$class, main="ROC curve Bagging")
+```
+
+
+
+## Boosting 
+ 
+ 
+ 
+ 
+### adaBoost with adabag
+
+```{r}
+adaboostmodelstandardize <- boosting(DEFAULT~., data=standardDS.train, boos=TRUE, mfinal=50) 
+```
+
+### Print Tree
+
+```{r}
+print(names(adaboostmodelstandardize))
+print(adaboostmodelstandardize$trees[1])
+```
+ 
+ 
+ 
+ 
+ 
+ ### Predict on test set
+
+```{r}
+predAdaBooststandaridize = predict(adaboostmodelstandardize, standardDS.test)
+print(predAdaBooststandaridize$confusion)
+print(predAdaBooststandaridize$error)
+```
+ 
+ 
+ 
+ 
+ ### Converting to factors
+
+
+```{r echo=FALSE}
+predAdaBooststandaridize$class<- as.factor(predAdaBooststandaridize$class)
+```
+
+
+
+### Confusion Matrix and evaluation
+
+```{r}
+confusionMatrix(standardDS.test$DEFAULT,predAdaBooststandaridize$class,mode="everything",positive = "Yes")
+```
+
+
+
+
+
+
+
+**Findings** 
+
+* Sensitivity is not as good as BAGGING
+
+
+
+
+
+
+
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r}
+ROCAdaBoost<- roc.curve(standardDS.test$DEFAULT,predAdaBooststandaridize$class, main="ROC curve Boosting Model")
+```
+
+
+
+# Create another Dataset called SMOTE Standardize. 
+
+
+## Create SMOTE Standardzed Dataset
+
+```{r}
+SMOTESTANDARTDATASET <- SMOTEdataset
+```
+
+
+## Run Standard Deviation to Standardize the Dataset
+
+
+
+
+```{r}
+stanvector <-c(1,5,6,7,8,9,10,11,13,14)
+```
+
+
+```{r}
+options(digits=2)
+
+for (i in stanvector) {
+
+SMOTESTANDARTDATASET[,i] <- scale(SMOTESTANDARTDATASET[,i],center = TRUE, scale = TRUE)
+  
+}
+
+```
+
+
+### Split 70 30 Ratio Train and Test
+
+```{r}
+set.seed(seed)
+
+sampleSMOTESTANDARTDATASET <- sample.split(SMOTESTANDARTDATASET$DEFAULT,SplitRatio = 0.7)
+SMOTESTANDARTDATASET.train <- subset(SMOTESTANDARTDATASET,sampleSMOTESTANDARTDATASET == TRUE)
+SMOTESTANDARTDATASET.test <- subset(SMOTESTANDARTDATASET,sampleSMOTESTANDARTDATASET == FALSE)
+```
+
+
+
+
+
+
+# Building Odels using SMOTE Standardized Dataset
+
+## Logistic Regression
+
+```{r echo=FALSE, warning=FALSE}
+fullmodSMOTESTANDART <- glm(DEFAULT ~. ,family=binomial,data=SMOTESTANDARTDATASET.train)
+
+```
+
+
+
+### Empty Model
+
+```{r}
+emptyModelSMOTESTANDART<- glm(DEFAULT ~ 1,family=binomial,data = SMOTESTANDARTDATASET.train)
+```
+
+
+
+
+
+
+### Backward Selection of significant variables
+
+```{r warning=FALSE}
+backwardSMOTESTANDART = step(fullmodSMOTESTANDART) 
+
+```
+
+
+
+
+
+
+
+
+
+
+
+### Variable Selection using direction BOTH
+
+```{r warning=FALSE}
+forwardSMOTESTANDART  = step(emptyModelSMOTESTANDART,scope=list(lower=formula(emptyModelSMOTESTANDART),upper=formula(fullmodSMOTESTANDART)), direction="both")
+
+
+```
+
+
+
+ 
+ 
+ ### Logistic Regression Model   
+    
+       
+```{r warning=FALSE}
+FitLogModelSMOTESTANDARD <- glm(DEFAULT ~ PAY_1 + PAY_AMT_SUM + PAY_2 + PAY_3 + SEX + EDUCATION + 
+    BILL_AMT_SUM + PAY_5 + MARRIAGE + PAY_4 + PAY_6 + AGE, data=SMOTESTANDARTDATASET.train,family= binomial(link='logit'))
+
+
+```
+
+
+
+
+### Checking for Multicollinearity    
+    
+```{r}
+vif(FitLogModelSMOTESTANDARD)
+```
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ **No Multicollinearity**
+
+
+```{r}
+summary(FitLogModelSMOTESTANDARD)
+```
+ 
+ 
+ 
+ ### Predict Test Set
+
+```{r}
+logpredSMOTESTANDARD<- predict(FitLogModelSMOTESTANDARD,SMOTESTANDARTDATASET.test[-12],type = "response")
+```
+
+
+
+### Converting Prob to Classes
+
+
+```{r}
+ypredlogSMOTESTANDARD <- as.factor(ifelse(logpredSMOTESTANDARD > 0.5,"Yes","No"))
+
+```
+
+
+
+### Confusion Matrix
+
+```{r}
+confusionMatrix( SMOTESTANDARTDATASET.test$DEFAULT,ypredlogSMOTESTANDARD,positive = "Yes", mode = "everything")
+```
+
+
+ **Findings**
+ 
+ * Sensitivity, Specificity, Precision and Accuracy scores are GOOD. Let's try to iprove using other models
+ 
+ 
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r}
+ROCtestSMOTEStand<- roc.curve(SMOTESTANDARTDATASET.test$DEFAULT,ypredlogSMOTESTANDARD, main="ROC curve Logistic")
+```
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+## KNN Model 
+
+
+
+```{r echo=FALSE}
+KNNControlSMOTESTANDARD <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+```
+
+
+```{r echo=FALSE}
+knnCaretSMOTESTANDARD <- train(DEFAULT~., data = SMOTESTANDARTDATASET.train, method = "knn",
+                 trControl=KNNControlSMOTESTANDARD,
+                 tuneLength = 5)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+knnCaretSMOTESTANDARD
+```
+
+ **Findings**
+ 
+ * K 13 is Optimal K value  used in this Model 
+
+
+
+
+
+
+
+### #Plotting Number of Neighbours Vs accuracy (based on repeated cross validation)
+
+```{r}
+plot(knnCaretSMOTESTANDARD)
+```
+
+
+
+
+
+
+
+
+
+
+### Let's predict for Test Data 
+
+
+      
+```{r warning=FALSE}
+testCaretSMOTESTANDARD <- predict(knnCaretSMOTESTANDARD, newdata = SMOTESTANDARTDATASET.test)
+```
+
+
+
+
+### Confusion Matrix
+
+
+```{r}
+confusionMatrix( SMOTESTANDARTDATASET.test$DEFAULT,testCaretSMOTESTANDARD, positive = "Yes", mode = "everything")
+```
+
+
+
+
+
+**Findings**
+ 
+* Sensitivity, Specificity, Precision and Accuracy scores are GOOD. Let's try to improve using other models. As we are more keen on Sensitivity for ths project. Sensitivity for this model is GOOD. Let's try and improve using other models.
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r}
+ROCtestSMOTESTANDARD<- roc.curve(SMOTESTANDARTDATASET.test$DEFAULT,testCaretSMOTESTANDARD, main="ROC curve KNN")
+```
+
+
+
+
+
+
+
+### Let's start building Naive Bayes with Cross Validation using  Caret    
+     
+
+
+
+
+
+```{r}
+
+
+nb_standarizedSMOTESTANDARD<-naiveBayes(x=SMOTESTANDARTDATASET.train[,-12], y=SMOTESTANDARTDATASET.train[,12])
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+pred_nbSMOTESTANDARD<-predict(nb_standarizedSMOTESTANDARD,newdata = SMOTESTANDARTDATASET.test[,-12])
+
+
+```
+
+
+
+
+
+```{r}
+confusionMatrix( SMOTESTANDARTDATASET.test$DEFAULT,pred_nbSMOTESTANDARD,positive = "Yes", mode = "everything")
+```
+
+
+**Findings**
+ 
+* Sensitivity, Specificity, Precision and Accuracy scores are GOOD. Let's try to improve using other models. As we are more keen on Sensitivity for ths project. Sensitivity for this model is GOOD. Let's try and improve using other models.
+
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r}
+ROCtestSMOTESTANDARDD<- roc.curve(SMOTESTANDARTDATASET.test$DEFAULT,pred_nbSMOTESTANDARD, main="ROC curve NB")
+```
+
+
+ 
+ 
+ 
+ 
+# CART with Tuning Parameters
+
+```{r echo=FALSE}
+
+fitControlSMOTESTANDARD <- trainControl(
+    method = 'cv',                   
+    number = 5,                      
+    savePredictions = 'final',       
+    classProbs = T,                  
+    summaryFunction=twoClassSummary  
+) 
+```
+
+
+ 
+ 
+ 
+ 
+```{r echo=FALSE, warning=FALSE}
+
+set.seed(seed)
+model_marsSMOTESTANDARD = train(DEFAULT ~ ., data=SMOTESTANDARTDATASET.train, method='rpart',parms = list(split = "gini"), tuneLength = 15, metric='ROC', trControl = fitControlSMOTESTANDARD)
+
+```
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+```{r}
+model_marsSMOTESTANDARD
+```
+ 
+**Findings**
+
+* Nprune of  cp = 0.001291642 is applied to the model
+
+
+
+## Plot Tree
+
+```{r fig.height=9}
+fancyRpartPlot(model_marsSMOTESTANDARD$finalModel)
+```
+
+
+### Predict on testData and Compute the confusion matrix
+
+```{r echo=FALSE}
+
+predictedSMOTESTANDARD <- predict(model_marsSMOTESTANDARD, SMOTESTANDARTDATASET.test)
+
+```
+
+
+
+
+
+```{r}
+confusionMatrix(reference = SMOTESTANDARTDATASET.test$DEFAULT, data = predictedSMOTESTANDARD , mode='everything', positive='Yes')
+```
+
+
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r warning=FALSE}
+ROCtestSMOTESTANDARDDCART<- roc.curve( SMOTESTANDARTDATASET.test$DEFAULT,predictedSMOTESTANDARD, main="ROC curve NB")
+```
+
+
+
+**Findings** 
+
+* Let's improve  more using Random Forest and Boosting
+ 
+ 
+ 
+
+## Random FOrest with tuning Parameters
+
+```{r echo=FALSE, warning=FALSE}
+fitControlSMOTESTANDARDRF <- trainControl(
+    method = 'cv',                   
+    number = 5,                      
+    savePredictions = 'final',       
+    classProbs = T,                  
+    summaryFunction=twoClassSummary  
+) 
+```
+
+
+
+
+
+
+
+
+
+```{r echo=FALSE}
+set.seed(seed)
+
+
+model_rfSMOTESTANDARD = train(DEFAULT ~ ., data=SMOTESTANDARTDATASET.train, method='rf', tuneLength=5, metric='ROC', trControl = fitControlSMOTESTANDARDRF)
+
+```
+
+
+
+
+```{r}
+model_rfSMOTESTANDARD
+```
+ 
+
+
+
+**Findings** 
+
+* mtry of 5 is applied as optimal mtry.
+
+
+
+### Predict RF
+
+```{r}
+predictedRFSMOTESTANDARD <- predict(model_rfSMOTESTANDARD, SMOTESTANDARTDATASET.test) 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+confusionMatrix(reference = SMOTESTANDARTDATASET.test$DEFAULT, data = predictedRFSMOTESTANDARD, mode='everything', positive='Yes')
+```
+
+
+
+
+
+
+
+
+
+
+**Findings** 
+
+* Excellent Model
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r}
+ROCtestSMOTESTANDARDDDDDD<- roc.curve(SMOTESTANDARTDATASET.test$DEFAULT,predictedRFSMOTESTANDARD, main="ROC curve RF")
+```
+
+
+
+
+
+
+## BAGGING
+
+### BAGGING
+
+```{r echo=FALSE}
+Car.BaggingSMOTESTANDARDe <- bagging(DEFAULT ~.,
+data=SMOTESTANDARTDATASET.train,
+control=rpart.control(maxdepth=30, minsplit=1))
+```
+
+
+
+### Predicting Bagging
+
+
+```{r echo=FALSE}
+
+
+BaggingSmoteStandardize <- predict(Car.BaggingSMOTESTANDARDe, SMOTESTANDARTDATASET.test)
+BaggingSmoteStandardize$class<- as.factor(BaggingSmoteStandardize$class)
+class(BaggingSmoteStandardize$class)
+
+```
+
+
+
+### Confusion Matrix
+```{r}
+confusionMatrix(SMOTESTANDARTDATASET.test$DEFAULT, BaggingSmoteStandardize$class,positive = "Yes", mode = "everything")
+```
+
+
+
+**Findings** 
+
+* Sensitivity and other scores of RF is better. Let's try Boosting
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r}
+ROCtestSMOTESTANDARddded<- roc.curve(SMOTESTANDARTDATASET.test$DEFAULT,BaggingSmoteStandardize$class, main="ROC curve")
+```
+
+
+
+
+
+
+
+
+## Boosting 
+ 
+ 
+ 
+ 
+### adaBoost with adabag
+
+```{r}
+adaboostmodelSmoteStandard <- boosting(DEFAULT~., data=SMOTESTANDARTDATASET.train, boos=TRUE, mfinal=50) 
+```
+
+### Print Tree
+
+```{r}
+print(names(adaboostmodelSmoteStandard))
+print(adaboostmodelSmoteStandard$trees[1])
+```
+ 
+ 
+ 
+ 
+ 
+ ### Predict on test set
+
+```{r echo=FALSE}
+predAdaBoostSMOTEStandard = predict(adaboostmodelSmoteStandard, SMOTESTANDARTDATASET.test)
+print(predAdaBoostSMOTEStandard$confusion)
+print(predAdaBoostSMOTEStandard$error)
+```
+ 
+ 
+ 
+ 
+ ### Converting to factors
+
+
+```{r}
+predAdaBoostSMOTEStandard$class<- as.factor(predAdaBoostSMOTEStandard$class)
+```
+
+
+
+### Confusion Matrix and evaluation
+
+```{r}
+confusionMatrix(SMOTESTANDARTDATASET.test$DEFAULT,predAdaBoostSMOTEStandard$class,mode="everything",positive = "Yes")
+```
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+```{r}
+ROCtestlogSMOTESTANDRDDD<- roc.curve(SMOTESTANDARTDATASET.test$DEFAULT,predAdaBoostSMOTEStandard$class, main="ROC curve Boosting")
+```
+
+
+
+# Model  Comparison
+
+
+## Have built multiple models on 4 datasets
+
+1) Logistic Regression
+
+2) Naive Bayes
+
+3) KNN
+
+4) CART
+
+5) Random Forest
+
+6) Bagging
+
+7) Boosting
+
+
+
+
+## Datasets
+
+1) Feature Engineered is Normal Dataset
+
+2) SMOTE
+
+3) Standardized Dataset
+
+4) SMOTE Standardized Dataset
+
+
+
+
+## Regular Dataset
+
+
+
+| Regular Dataset |   | Logistic Regression | KNN    | Naive Bayes | CART    | Random Forest | Bagging | Boosting |
+|-----------------|---|---------------------|--------|-------------|---------|---------------|---------|----------|
+|                 |   |                     |        |             |         |               |         |          |
+| Accuracy        |   | 81.40%              | 77.10% | 80.20%      | 82.30%  | 82.40%        | 82.30%  | 82.20%   |
+| Sensitivity     |   | 75.20%              | 42.19% | 56.80%      | 36.11%  | 35.96%        | 72.38%  | 68.40%   |
+| Specificity     |   | 81.89%              | 78.93% | 85.10%      | 95.46%  | 95.56%        | 83.45%  | 84.10%   |
+| Precision       |   | 23.91%              | 9.49%  | 44.25%      | 69.33%  | 69.72%        | 32.65%  | 36.60%   |
+| F1              |   | 36.28               | 15.50  | 49.75%      | 47.749% | 47.45         | 45.00%  | 47.70%   |
+
+
+
+
+
+
+
+
+
+
+
+## SMOTE
+
+
+
+
+
+| SMOTE Dataset |   | Logistic Regression | KNN    | Naive Bayes | CART   | Random Forest | Bagging | Boosting |
+|---------------|---|---------------------|--------|-------------|--------|---------------|---------|----------|
+|               |   |                     |        |             |        |               |         |          |
+| Accuracy      |   | 69.20%              | 70.70% | 76.40%      | 78.00% | 89.90%        | 82.30%  | 60.40%   |
+| Sensitivity   |   | 70.80%              | 76.40% | 73.20%      | 79.40% | 88.60%        | 72.38%  | 68.40%   |
+| Specificity   |   | 66.69%              | 65.10% | 80.30%      | 76.20% | 91.50%        | 83.45%  | 54.20%   |
+| Precision     |   | 75.59%              | 68.40% | 82.30%      | 80.70% | 92.90%        | 32.65%  | 36.60%   |
+| F1            |   | 73.30%              | 72.20% | 77.50%      | 80.00% | 90.70%        | 45.00%  | 47.70%   |
+
+
+
+
+## Standardize Dataset
+
+
+| Standardize Dataset |   | Logistic Regression | KNN    | Naive Bayes | CART   | Random Forest | Bagging | Boosting |
+|---------------------|---|---------------------|--------|-------------|--------|---------------|---------|----------|
+|                     |   |                     |        |             |        |               |         |          |
+| Accuracy            |   | 81.40%              | 81.60% | 80.20%      | 82.30% | 82.40%        | 82.30%  | 82.20%   |
+| Sensitivity         |   | 75.20%              | 64.95% | 56.80%      | 36.11% | 36.21%        | 72.38%  | 69.96%   |
+| Specificity         |   | 81.89%              | 83.88% | 85.10%      | 95.46% | 95.56%        | 83.45%  | 83.76%   |
+| Precision           |   | 23.91%              | 36.11% | 44.25%      | 69.33% | 69.86%        | 32.65%  | 34.51%   |
+| F1                  |   | 36.28%              | 46.42% | 49.75%      | 47.49% | 47.70%        | 45.00%  | 46.22%   |
+
+
+
+
+
+
+## SMOTE and Standardized
+
+| SMOTE and Standardize |   | Logistic Regression | KNN    | Naive Bayes | CART   | Random Forest | Bagging | Boosting |
+|-----------------------|---|---------------------|--------|-------------|--------|---------------|---------|----------|
+|                       |   |                     |        |             |        |               |         |          |
+| Accuracy              |   | 69.20%              | 81.70% | 76.40%      | 78.20% | 90.00%        | 76.80%  | 85.20%   |
+| Sensitivity           |   | 70.80%              | 87.90% | 82.30%      | 79.40% | 88.60%        | 82.80%  | 86.10%   |
+| Specificity           |   | 66.90%              | 75.70% | 70.60%      | 76.70% | 91.60%        | 70.90%  | 84.10%   |
+| Precision             |   | 75.90%              | 77.70% | 73.20%      | 81.10% | 93.30%        | 73.50%  | 87.60%   |
+| F1                    |   | 73.30%              | 82.50% | 77.50%      | 80.20% | 90.70%        | 77.90%  | 86.80%   |
+
+
+
+
+
+# Conclusion and Recommendation
+
+1) Accuracy, Sensitivity, Specificity and Precision of RANDOM FOREST on SMOTE + STANDARDIZED DATASET is the highest. Would recomend using Random Forest Model with SMOTE and Standardized dataset
+
+
+2) A Taiwan-based bank wants to improve their prediction of defaults of their customers, as well as identify the patterns that determine this likelihood. This would help the bank decide whether to issue the credit card or not. Also, fix credit limt and risk type to the customer and avoid future defaults.
+
+
+3) To lower the risk of default, must be very cautious on clients payment behaviour.
+
+4) More cautious of High School level clients.
+
+5) Marketing campaign should be aimed at clients' age from 25 to 35.
+
+6) As the model can predict defaulters. Bank rep can keep an eye on customers who are likely to default and contact them immediately as they default 1st payment. Ensure it doesn’t become NPA.
+
+7) Spread awareness regarding good credit history/score. Advantages of good credit score and disadvantages of bad credit score should be communicated with borrower on regular bases.
+
+8) Provide Cashback or other benefits for people making regular payments.
+
+9) Those with higher Pay Amount Sum are less likely to default. Encourage these customers to make referrals.
+
+10) Provide facilities like collecting cash from home for customers.
+
+
+
+
+
+Taiwan Bank can now predict customer(applicants) who are going to default using Random Forest model built. Sensitivity (also called the true positive rate, the recall, or probability of detection in some fields) measures the proportion of actual positives that are correctly identified as such (e.g., the percentage of customers default who are correctly identified as having to default) 
+
+
+Taiwan Bank can now mitigate the Default Risk more efficiently using the Random forest built. 
+
+
+
+
+
+
+
+
+
+# Appendix
+
+
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+
+```
+
